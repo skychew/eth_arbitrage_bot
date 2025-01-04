@@ -1,0 +1,10 @@
+# Ignore .env
+.env
+
+# Rust build artifacts
+/target
+Cargo.lock
+
+# IDE settings
+.vscode/
+.idea/
