@@ -1,5 +1,6 @@
 use ethers::prelude::*;
 use ethers::providers::{Provider, Ws, StreamExt};
+use ethers::utils::format_ether;
 use std::env;
 use std::sync::Arc;
 use tokio;
@@ -32,8 +33,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("🔍 Transaction Details:");
                 println!("From: {:?}", transaction.from);
                 println!("To: {:?}", transaction.to);
-                println!("Gas Price: {:?}", transaction.gas_price);
-                println!("Value: {:?}", transaction.value);
+                println!(
+                    "Gas Price: {:?}",
+                    transaction.gas_price.map(|g| format_ether(g))
+                );
+                println!(
+                    "Value: {} ETH",
+                    format_ether(transaction.value)
+                );
             }
         }
     }
