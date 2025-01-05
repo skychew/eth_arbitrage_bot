@@ -5,42 +5,53 @@ use std::env;
 use std::sync::Arc;
 use tokio;
 use dotenv::dotenv;
+use log::{info, warn};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
+    env_logger::init();
 
-    // Retrieve WebSocket URL from environment variables
     let ws_url = env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
-    println!("🔗 Connecting to Ethereum WebSocket: {}", ws_url);
+    info!("🔗 Connecting to Ethereum WebSocket: {}", ws_url);
 
-    // Connect to Ethereum node via WebSocket
     let provider = Provider::<Ws>::connect(ws_url).await?;
     let provider = Arc::new(provider);
 
-    println!("✅ Connected to Ethereum Node!");
-
-    // Listen for pending transactions
-    println!("🕵️‍♂️ Listening for pending transactions...");
+    info!("✅ Connected to Ethereum Node!");
+    info!("🕵️‍♂️ Listening for pending transactions...");
 
     let mut stream = provider.subscribe_pending_txs().await?;
-    while let Some(tx_hash) = stream.next().await {
-        println!("📝 Pending Transaction: {:?}", tx_hash);
+    let dex_addresses = vec![
+        // Uniswap V2 Router
+        "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse::<Address>()?,
+        // Uniswap V3 Router
+        "0xe592427a0aece92de3edee1f18e0157c05861564".parse::<Address>()?,
+        // SushiSwap Router
+        "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse::<Address>()?,
+    ];
 
-        // Fetch transaction details
+    while let Some(tx_hash) = stream.next().await {
+        info!("📝 Pending Transaction: {:?}", tx_hash);
+
         if let Ok(tx) = provider.get_transaction(tx_hash).await {
             if let Some(transaction) = tx {
-                println!("🔍 Transaction Details:");
-                println!("From: {:?}", transaction.from);
-                println!("To: {:?}", transaction.to);
-                println!(
-                    "Gas Price: {:?}",
-                    transaction.gas_price.map(|g| format_ether(g))
-                );
-                println!(
-                    "Value: {} ETH",
-                    format_ether(transaction.value)
-                );
+                if let Some(to) = transaction.to {
+                    if dex_addresses.contains(&to) {
+                        info!("🎯 DEX Transaction Detected!");
+                        info!("🔍 Transaction Details:");
+                        info!("From: {:?}", transaction.from);
+                        info!("To: {:?}", transaction.to);
+                        info!(
+                            "Gas Price: {:?}",
+                            transaction.gas_price.map(|g| format_ether(g))
+                        );
+                        info!(
+                            "Value: {} ETH",
+                            format_ether(transaction.value)
+                        );
+                    }
+                }
             }
         }
     }
