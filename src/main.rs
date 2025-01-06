@@ -31,9 +31,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .target(Target::Pipe(Box::new(log_file)))
         .filter(None, log::LevelFilter::Info)
         .init();
-
-    info!("🔗 Connecting to Ethereum WebSocket: {}", ws_url);
+    
     let ws_url = env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
+    info!("🔗 Connecting to Ethereum WebSocket: {}", ws_url);
+    
     let provider = Provider::<Ws>::connect(ws_url).await?;
     let provider = Arc::new(provider);
 
