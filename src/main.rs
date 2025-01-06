@@ -5,7 +5,7 @@ use ethers::utils::{format_ether, hex};
 use std::env;
 use std::sync::Arc;
 use tokio;
-use dotenv::dotenv;
+//use dotenv::dotenv;
 use log::{info, error, debug};
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -18,22 +18,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     //env_logger::init();
     //env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
    // Ensure the logger is initialized only once
-   if let Err(_) = log::set_logger(&env_logger::Logger::from_default_env()) {
-    eprintln!("Logger was already initialized, skipping...");
-} else {
+    // Log to file and console using env_logger
     let log_file = OpenOptions::new()
         .create(true)
         .append(true)
         .open("bot_logs.log")
-        .unwrap();
+        .expect("Failed to open log file");
 
     Builder::new()
         .target(Target::Pipe(Box::new(log_file)))
         .filter(None, log::LevelFilter::Info)
         .init();
-}
-
-    let ws_url = env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
+    
+    let ws_url = std::env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
     info!("🔗 Connecting to Ethereum WebSocket: {}", ws_url);
     
     let provider = Provider::<Ws>::connect(ws_url).await?;
