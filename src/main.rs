@@ -2,13 +2,13 @@ use ethers::prelude::*;
 use ethers::providers::{Provider, Ws, StreamExt};
 //use ethers::utils::format_ether;
 use ethers::utils::{format_ether, hex};
-use std::env;
+//use std::env;
 use std::sync::Arc;
 use tokio;
 //use dotenv::dotenv;
 use log::{info, error, debug};
 use std::fs::OpenOptions;
-use std::io::Write;
+//use std::io::Write;
 use env_logger::{Builder, Target};
 
 
@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .target(Target::Pipe(Box::new(log_file)))
         .filter(None, log::LevelFilter::Info)
         .init();
-    
+
     let ws_url = std::env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
     info!("🔗 Connecting to Ethereum WebSocket: {}", ws_url);
     
