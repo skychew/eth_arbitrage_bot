@@ -50,9 +50,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         info!("Gas Price: {:?}", transaction.gas_price.map(|g| format_ether(g)));
                         info!("Value: {} ETH", format_ether(transaction.value));
                         
-                        if let Some(input) = transaction.input {
-                            decode_input_data(&input);
-                        }
+                        // Decode transaction input
+                        decode_input_data(&transaction.input);
                     }
                 } else {
                     debug!("❌ Transaction `to` address is None.");
@@ -70,12 +69,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 /// Decode DEX swap transaction input data
 fn decode_input_data(input: &Bytes) {
-    if input.0.len() < 4 {
-        error!("❌ Invalid input data: too short");
+    if input.is_empty() {
+        error!("❌ Input data is empty, skipping...");
         return;
     }
 
-    let selector = hex::encode(&input.0[0..4]);
+    let selector = hex::encode(&input[0..4]);
     info!("🧩 Function Selector: 0x{}", selector);
 
     match selector.as_str() {
@@ -86,5 +85,5 @@ fn decode_input_data(input: &Bytes) {
     }
 
     // Print the full input data for debugging
-    info!("🔑 Raw Input Data: {:?}", hex::encode(&input.0));
+    info!("🔑 Raw Input Data: {:?}", hex::encode(&input));
 }
