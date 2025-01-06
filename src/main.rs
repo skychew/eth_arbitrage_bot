@@ -6,7 +6,7 @@ use std::sync::Arc;
 use tokio;
 use dotenv::dotenv;
 //use log::{info, debug, error};
-use log::{info, error};
+use log::{info, debug, error};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
