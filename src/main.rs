@@ -1,6 +1,7 @@
 use ethers::prelude::*;
 use ethers::providers::{Provider, Ws, StreamExt};
-use ethers::utils::format_ether;
+//use ethers::utils::format_ether;
+use ethers::utils::{format_ether, hex};
 use std::env;
 use std::sync::Arc;
 use tokio;
@@ -11,10 +12,11 @@ use log::{info, debug, error};
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
-    env_logger::init();
-
+    //env_logger::init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    
     let ws_url = env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
-    debug!("🔗 Connecting to Ethereum WebSocket: {}", ws_url);
+    info!("🔗 Connecting to Ethereum WebSocket: {}", ws_url);
 
     let provider = Provider::<Ws>::connect(ws_url).await?;
     let provider = Arc::new(provider);
