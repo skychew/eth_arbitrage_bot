@@ -18,8 +18,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     //env_logger::init();
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     
- 
-
     // Configure env_logger to log to a file and stdout
     let log_file = OpenOptions::new()
         .create(true)
@@ -31,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .target(Target::Pipe(Box::new(log_file)))
         .filter(None, log::LevelFilter::Info)
         .init();
-    
+
     let ws_url = env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
     info!("🔗 Connecting to Ethereum WebSocket: {}", ws_url);
     
