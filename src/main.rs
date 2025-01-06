@@ -6,8 +6,11 @@ use std::env;
 use std::sync::Arc;
 use tokio;
 use dotenv::dotenv;
-//use log::{info, debug, error};
 use log::{info, debug, error};
+use std::fs::OpenOptions;
+use std::io::Write;
+use env_logger::{Builder, Target};
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -15,9 +18,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     //env_logger::init();
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     
-    let ws_url = env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
-    info!("🔗 Connecting to Ethereum WebSocket: {}", ws_url);
+ 
 
+    // Configure env_logger to log to a file and stdout
+    let log_file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("bot_logs.log")
+        .unwrap();
+
+    Builder::new()
+        .target(Target::Pipe(Box::new(log_file)))
+        .filter(None, log::LevelFilter::Info)
+        .init();
+
+    info!("🔗 Connecting to Ethereum WebSocket: {}", ws_url);
+    let ws_url = env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
     let provider = Provider::<Ws>::connect(ws_url).await?;
     let provider = Arc::new(provider);
 
@@ -27,12 +43,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut stream = provider.subscribe_pending_txs().await?;
     let dex_addresses = vec![
-        // Uniswap V2 Router
-        "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse::<Address>()?,
-        // Uniswap V3 Router
-        "0xe592427a0aece92de3edee1f18e0157c05861564".parse::<Address>()?,
-        // SushiSwap Router
-        "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse::<Address>()?,
+        "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse::<Address>()?, // Uniswap V2 Router
+        "0xe592427a0aece92de3edee1f18e0157c05861564".parse::<Address>()?, // Uniswap V3 Router       
+        "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse::<Address>()?, // SushiSwap Router
     ];
 
     while let Some(tx_hash) = stream.next().await {
