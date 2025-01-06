@@ -5,10 +5,10 @@ use ethers::utils::{format_ether, hex};
 use std::env;
 use std::sync::Arc;
 use tokio;
-//use dotenv::dotenv;
-use log::{info, debug, error};
+use dotenv::dotenv;
+use log::{info, error, debug};
 use std::fs::OpenOptions;
-//use std::io::Write;
+use std::io::Write;
 use env_logger::{Builder, Target};
 
 
