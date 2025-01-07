@@ -1,10 +1,8 @@
 use ethers::prelude::*;
 use ethers::providers::{Provider, Ws, StreamExt};
 use ethers::utils::{format_ether, hex};
-use std::env;
 use std::sync::Arc;
 use tokio;
-use dotenv::dotenv;
 use log::{info, error, debug};
 use std::fs::OpenOptions;
 use env_logger::{Builder, Target};
@@ -156,7 +154,6 @@ fn decode_input_data(input: &Bytes) -> Option<(Address, Address, U256, Address)>
 }
 
 /// Simulate arbitrage opportunity based on detected DEX transaction
-use ethers::types::U256;
 use std::collections::HashMap;
 
 
@@ -192,8 +189,8 @@ async fn simulate_arbitrage(
             .call(
                 &ethers::types::TransactionRequest::default()
                     .to(*address)
-                    .data(call_data),
-                None,
+                    .data(call_data)
+                    .into(), // Convert to TypedTransaction
             )
             .await
         {
