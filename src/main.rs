@@ -66,6 +66,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         
                         // Decode transaction input
                         decode_input_data(&transaction.input);
+
+                        if let (Token::Address(token_in), Token::Address(token_out), Token::Uint(amount_in), Token::Address(recipient)) =
+                            (&decoded[0], &decoded[1], &decoded[5], &decoded[3])
+                        {
+                            info!("🔄 Token In: {:?}", token_in);
+                            info!("🔄 Token Out: {:?}", token_out);
+                            info!("💰 Amount In: {:?}", amount_in);
+                            info!("👤 Recipient: {:?}", recipient);
+
+                            // Call simulate_arbitrage
+                            simulate_arbitrage(*token_in, *token_out, *amount_in, Arc::clone(&provider)).await;
+                        }
                     }
                 } else {
                     debug!("❌ Transaction `to` address is None.");
@@ -162,5 +174,74 @@ fn decode_input_data(input: &Bytes) {
             info!("❓ Unknown Function Selector: 0x{}", selector);
             info!("🔑 Raw Input Data: {:?}", hex::encode(&input));
         }
+    }
+}
+
+/// Simulate arbitrage opportunity based on detected DEX transaction
+use ethers::types::U256;
+use std::collections::HashMap;
+
+
+async fn simulate_arbitrage(
+    token_in: Address,
+    token_out: Address,
+    amount_in: U256,
+    provider: Arc<Provider<Ws>>,
+) {
+    info!("🔄 Simulating arbitrage for Token In: {:?}, Token Out: {:?}", token_in, token_out);
+
+    // Example DEX router addresses for price fetching
+    let dex_addresses: HashMap<&str, Address> = HashMap::from([
+        ("UniswapV2", "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse().unwrap()),
+        ("SushiSwap", "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse().unwrap()),
+    ]);
+
+    let mut buy_price: Option<U256> = None;
+    let mut sell_price: Option<U256> = None;
+
+    // Fetch prices from each DEX
+    for (dex, address) in dex_addresses.iter() {
+        let call_data = ethers::abi::encode(&[
+            ethers::abi::Token::Address(token_in),
+            ethers::abi::Token::Address(token_out),
+            ethers::abi::Token::Uint(amount_in),
+        ]);
+
+        if let Ok(result) = provider
+            .call(
+                &ethers::types::TransactionRequest::default()
+                    .to(*address)
+                    .data(call_data),
+                None,
+            )
+            .await
+        {
+            let price = U256::from_big_endian(&result[0..32]);
+            info!("💱 {} Price: {}", dex, price);
+
+            if buy_price.is_none() {
+                buy_price = Some(price);
+            } else {
+                sell_price = Some(price);
+            }
+        }
+    }
+
+    if let (Some(buy), Some(sell)) = (buy_price, sell_price) {
+        let gas_cost = U256::from(1_000_000_000_000_000u64); // Example gas fee
+
+        let profit = sell.checked_sub(buy).unwrap_or_default().checked_sub(gas_cost).unwrap_or_default();
+
+        if profit > U256::from(0) {
+            info!("💰 Arbitrage Opportunity Detected!");
+            info!("🔹 Buy Price: {}", buy);
+            info!("🔸 Sell Price: {}", sell);
+            info!("⛽ Gas Cost: {}", gas_cost);
+            info!("💵 Profit: {}", profit);
+        } else {
+            info!("❌ No profitable arbitrage found.");
+        }
+    } else {
+        error!("❌ Failed to fetch prices from DEXs.");
     }
 }
