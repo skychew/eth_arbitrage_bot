@@ -66,17 +66,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         
                         // Decode transaction input
                         decode_input_data(&transaction.input);
-
-                        if let (Token::Address(token_in), Token::Address(token_out), Token::Uint(amount_in), Token::Address(recipient)) =
-                            (&decoded[0], &decoded[1], &decoded[5], &decoded[3])
-                        {
+                        
+                        if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input) {
                             info!("🔄 Token In: {:?}", token_in);
                             info!("🔄 Token Out: {:?}", token_out);
                             info!("💰 Amount In: {:?}", amount_in);
                             info!("👤 Recipient: {:?}", recipient);
-
+                        
                             // Call simulate_arbitrage
-                            simulate_arbitrage(*token_in, *token_out, *amount_in, Arc::clone(&provider)).await;
+                            simulate_arbitrage(token_in, token_out, amount_in, Arc::clone(&provider)).await;
                         }
                     }
                 } else {
@@ -95,10 +93,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 /// Decode DEX swap transaction input data
 // Updated decode_input_data function
-fn decode_input_data(input: &Bytes) {
+fn decode_input_data(input: &Bytes) -> Option<(Address, Address, U256, Address)> {
     if input.is_empty() {
         error!("❌ Input data is empty, skipping...");
-        return;
+        return None;
     }
 
     let selector = hex::encode(&input[0..4]);
@@ -108,8 +106,6 @@ fn decode_input_data(input: &Bytes) {
         .parse(&[
             "function exactInputSingle(address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)",
             "function exactInput(bytes path, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum)",
-            "function exactOutputSingle(address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum, uint160 sqrtPriceLimitX96)",
-            "function exactOutput(bytes path, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum)"
         ])
         .expect("Failed to parse ABI");
 
@@ -121,14 +117,15 @@ fn decode_input_data(input: &Bytes) {
                 .unwrap()
                 .decode_input(&input[4..])
             {
-                if let (Token::Bytes(path), Token::Address(recipient), Token::Uint(deadline), Token::Uint(amount_out), Token::Uint(amount_in_max)) =
+                if let (Token::Bytes(_), Token::Address(recipient), Token::Uint(_), Token::Uint(amount_out), Token::Uint(_)) =
                     (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
                 {
-                    info!("🔄 Path: {:?}", hex::encode(path));
-                    info!("👤 Recipient: {:?}", recipient);
-                    info!("⏳ Deadline: {:?}", deadline);
-                    info!("💰 Amount Out: {:?}", amount_out);
-                    info!("💸 Amount In Max: {:?}", amount_in_max);
+                    return Some((
+                        Address::default(),
+                        Address::default(),
+                        *amount_out,
+                        *recipient,
+                    ));
                 }
             }
         }
@@ -139,34 +136,15 @@ fn decode_input_data(input: &Bytes) {
                 .unwrap()
                 .decode_input(&input[4..])
             {
-                if let (Token::Bytes(path), Token::Address(recipient), Token::Uint(deadline), Token::Uint(amount_in), Token::Uint(amount_out_min)) =
+                if let (Token::Bytes(_), Token::Address(recipient), Token::Uint(_), Token::Uint(amount_in), Token::Uint(_)) =
                     (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
                 {
-                    info!("🔄 Path: {:?}", hex::encode(path));
-                    info!("👤 Recipient: {:?}", recipient);
-                    info!("⏳ Deadline: {:?}", deadline);
-                    info!("💰 Amount In: {:?}", amount_in);
-                    info!("💸 Amount Out Min: {:?}", amount_out_min);
-                }
-            }
-        }
-        "db3e2198" => {
-            info!("🛠️ Decoding: exactOutputSingle");
-            if let Ok(decoded) = abi
-                .function("exactOutputSingle")
-                .unwrap()
-                .decode_input(&input[4..])
-            {
-                if let (Token::Address(token_in), Token::Address(token_out), Token::Uint(fee), Token::Address(recipient), Token::Uint(deadline), Token::Uint(amount_out), Token::Uint(amount_in_max), Token::Uint(sqrt_price_limit)) =
-                    (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4], &decoded[5], &decoded[6], &decoded[7])
-                {
-                    info!("🔄 Token In: {:?}", token_in);
-                    info!("🔄 Token Out: {:?}", token_out);
-                    info!("💹 Fee: {:?}", fee);
-                    info!("👤 Recipient: {:?}", recipient);
-                    info!("⏳ Deadline: {:?}", deadline);
-                    info!("💰 Amount Out: {:?}", amount_out);
-                    info!("💸 Amount In Max: {:?}", amount_in_max);
+                    return Some((
+                        Address::default(),
+                        Address::default(),
+                        *amount_in,
+                        *recipient,
+                    ));
                 }
             }
         }
@@ -175,6 +153,8 @@ fn decode_input_data(input: &Bytes) {
             info!("🔑 Raw Input Data: {:?}", hex::encode(&input));
         }
     }
+
+    None
 }
 
 /// Simulate arbitrage opportunity based on detected DEX transaction
