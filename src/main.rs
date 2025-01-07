@@ -10,6 +10,8 @@ use log::{info, error, debug};
 use std::fs::OpenOptions;
 //use std::io::Write;
 use env_logger::{Builder, Target};
+use ethers::abi::{AbiParser, Token};
+use ethers::types::{Bytes, U256};
 
 
 #[tokio::main]
@@ -80,6 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Decode DEX swap transaction input data
+// Updated decode_input_data function
 fn decode_input_data(input: &Bytes) {
     if input.is_empty() {
         error!("❌ Input data is empty, skipping...");
@@ -89,13 +92,75 @@ fn decode_input_data(input: &Bytes) {
     let selector = hex::encode(&input[0..4]);
     info!("🧩 Function Selector: 0x{}", selector);
 
-    match selector.as_str() {
-        "38ed1739" => info!("🛠️ Function: swapExactTokensForTokens"),
-        "5c11d795" => info!("🛠️ Function: exactInputSingle (Uniswap V3)"),
-        "18cbafe5" => info!("🛠️ Function: swapExactETHForTokens"),
-        _ => info!("❓ Unknown Function Selector: 0x{}", selector),
-    }
+    let abi = AbiParser::default()
+        .parse(&[
+            "function exactInputSingle(address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)",
+            "function exactInput(bytes path, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum)",
+            "function exactOutputSingle(address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum, uint160 sqrtPriceLimitX96)",
+            "function exactOutput(bytes path, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum)"
+        ])
+        .expect("Failed to parse ABI");
 
-    // Print the full input data for debugging
-    info!("🔑 Raw Input Data: {:?}", hex::encode(&input));
+    match selector.as_str() {
+        "414bf389" => {
+            info!("🛠️ Decoding: exactOutput");
+            if let Ok(decoded) = abi
+                .function("exactOutput")
+                .unwrap()
+                .decode_input(&input[4..])
+            {
+                if let (Token::Bytes(path), Token::Address(recipient), Token::Uint(deadline), Token::Uint(amount_out), Token::Uint(amount_in_max)) =
+                    (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
+                {
+                    info!("🔄 Path: {:?}", hex::encode(path));
+                    info!("👤 Recipient: {:?}", recipient);
+                    info!("⏳ Deadline: {:?}", deadline);
+                    info!("💰 Amount Out: {:?}", amount_out);
+                    info!("💸 Amount In Max: {:?}", amount_in_max);
+                }
+            }
+        }
+        "f28c0498" => {
+            info!("🛠️ Decoding: exactInput");
+            if let Ok(decoded) = abi
+                .function("exactInput")
+                .unwrap()
+                .decode_input(&input[4..])
+            {
+                if let (Token::Bytes(path), Token::Address(recipient), Token::Uint(deadline), Token::Uint(amount_in), Token::Uint(amount_out_min)) =
+                    (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
+                {
+                    info!("🔄 Path: {:?}", hex::encode(path));
+                    info!("👤 Recipient: {:?}", recipient);
+                    info!("⏳ Deadline: {:?}", deadline);
+                    info!("💰 Amount In: {:?}", amount_in);
+                    info!("💸 Amount Out Min: {:?}", amount_out_min);
+                }
+            }
+        }
+        "db3e2198" => {
+            info!("🛠️ Decoding: exactOutputSingle");
+            if let Ok(decoded) = abi
+                .function("exactOutputSingle")
+                .unwrap()
+                .decode_input(&input[4..])
+            {
+                if let (Token::Address(token_in), Token::Address(token_out), Token::Uint(fee), Token::Address(recipient), Token::Uint(deadline), Token::Uint(amount_out), Token::Uint(amount_in_max), Token::Uint(sqrt_price_limit)) =
+                    (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4], &decoded[5], &decoded[6], &decoded[7])
+                {
+                    info!("🔄 Token In: {:?}", token_in);
+                    info!("🔄 Token Out: {:?}", token_out);
+                    info!("💹 Fee: {:?}", fee);
+                    info!("👤 Recipient: {:?}", recipient);
+                    info!("⏳ Deadline: {:?}", deadline);
+                    info!("💰 Amount Out: {:?}", amount_out);
+                    info!("💸 Amount In Max: {:?}", amount_in_max);
+                }
+            }
+        }
+        _ => {
+            info!("❓ Unknown Function Selector: 0x{}", selector);
+            info!("🔑 Raw Input Data: {:?}", hex::encode(&input));
+        }
+    }
 }
