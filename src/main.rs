@@ -66,8 +66,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         
                         // Decode transaction input
                         if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input) {
-                            info!("🔄 Token In: {:?}", token_in);
-                            info!("🔄 Token Out: {:?}", token_out);
+                            info!("🔄 Starting Arbitrage Simulation...");
+                            info!("🪙 Token In: {:?}", token_in);
+                            info!("🪙 Token Out: {:?}", token_out);
                             info!("💰 Amount In: {:?}", amount_in);
                             info!("👤 Recipient: {:?}", recipient);
                         
@@ -115,15 +116,16 @@ fn decode_input_data(input: &Bytes) -> Option<(Address, Address, U256, Address)>
                 .unwrap()
                 .decode_input(&input[4..])
             {
-                if let (Token::Bytes(_), Token::Address(recipient), Token::Uint(_), Token::Uint(amount_out), Token::Uint(_)) =
-                    (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
+                if let (
+                    Token::Address(token_in),
+                    Token::Address(token_out),
+                    Token::Uint(_),
+                    Token::Address(recipient),
+                    Token::Uint(amount_out),
+                    Token::Uint(_)
+                ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4], &decoded[5])
                 {
-                    return Some((
-                        Address::default(),
-                        Address::default(),
-                        *amount_out,
-                        *recipient,
-                    ));
+                    return Some((*token_in, *token_out, *amount_out, *recipient));
                 }
             }
         }
@@ -134,15 +136,16 @@ fn decode_input_data(input: &Bytes) -> Option<(Address, Address, U256, Address)>
                 .unwrap()
                 .decode_input(&input[4..])
             {
-                if let (Token::Bytes(_), Token::Address(recipient), Token::Uint(_), Token::Uint(amount_in), Token::Uint(_)) =
-                    (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
+                if let (
+                    Token::Address(token_in),
+                    Token::Address(token_out),
+                    Token::Uint(_),
+                    Token::Address(recipient),
+                    Token::Uint(amount_in),
+                    Token::Uint(_)
+                ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4], &decoded[5])
                 {
-                    return Some((
-                        Address::default(),
-                        Address::default(),
-                        *amount_in,
-                        *recipient,
-                    ));
+                    return Some((*token_in, *token_out, *amount_in, *recipient));
                 }
             }
         }
@@ -166,7 +169,10 @@ async fn simulate_arbitrage(
     amount_in: U256,
     provider: Arc<Provider<Ws>>,
 ) {
-    info!("🔄 Simulating arbitrage for Token In: {:?}, Token Out: {:?}", token_in, token_out);
+    info!("🔄 Starting Arbitrage Simulation...");
+    info!("🪙 Token In: {:?}", token_in);
+    info!("🪙 Token Out: {:?}", token_out);
+    info!("💰 Amount In: {:?}", amount_in);
 
     // Example DEX router addresses for price fetching
     let dex_addresses: HashMap<&str, Address> = HashMap::from([
