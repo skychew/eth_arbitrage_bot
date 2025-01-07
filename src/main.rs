@@ -16,10 +16,9 @@ use ethers::types::{Bytes, U256};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    //load environment variables from a .env file, ok() is used to ignore errors, not panic.
     dotenv::dotenv().ok();
-    //env_logger::init();
-    //env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
-   // Ensure the logger is initialized only once
+  
     // Log to file and console using env_logger
     let log_file = OpenOptions::new()
         .create(true)
