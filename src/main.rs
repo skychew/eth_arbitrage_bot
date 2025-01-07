@@ -68,7 +68,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             info!("👤 Recipient: {:?}", recipient);
                         
                             // Call simulate_arbitrage
-                            let simulate_result = simulate_arbitrage(token_in, token_out, amount_in, Arc::clone(&provider)).await?;
+                            match simulate_arbitrage(token_in, token_out, amount_in, Arc::clone(&provider)).await 
+                            {
+                                Ok(_) => {
+                                    //do nothing
+                                }
+                                Err(e) => {
+                                    eprintln!("Error simulate_arbitrage: {:?}", e);
+                                }
+                            }
                         }
                     }
                 } else {
