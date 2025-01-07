@@ -161,8 +161,8 @@ async fn simulate_arbitrage(
     token_in: Address,
     token_out: Address,
     amount_in: U256,
-    provider: Arc<Provider>,
-) -> Result<(), Box<dyn std::error::Error>> {
+    provider: Arc<Provider<Ws>>,
+) {
     info!("🔄 Starting Arbitrage Simulation...");
     info!("🪙 Token In: {:?}", token_in);
     info!("🪙 Token Out: {:?}", token_out);
@@ -191,7 +191,7 @@ async fn simulate_arbitrage(
                 .to(*address)
                 .data(call_data)
                 .into(), 
-            None,
+            None
         )
         .await?;
         info!("💾 Call result: {:?}", result);
@@ -205,7 +205,6 @@ async fn simulate_arbitrage(
                 sell_price = Some(price);
             }
         }
-        Ok(())
     }
 
     if let (Some(buy), Some(sell)) = (buy_price, sell_price) {
