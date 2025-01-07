@@ -1,14 +1,12 @@
 use ethers::prelude::*;
 use ethers::providers::{Provider, Ws, StreamExt};
-//use ethers::utils::format_ether;
 use ethers::utils::{format_ether, hex};
-//use std::env;
+use std::env;
 use std::sync::Arc;
 use tokio;
-//use dotenv::dotenv;
+use dotenv::dotenv;
 use log::{info, error, debug};
 use std::fs::OpenOptions;
-//use std::io::Write;
 use env_logger::{Builder, Target};
 use ethers::abi::{AbiParser, Token};
 use ethers::types::{Bytes, U256};
