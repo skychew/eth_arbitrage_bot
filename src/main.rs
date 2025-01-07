@@ -185,14 +185,16 @@ async fn simulate_arbitrage(
             ethers::abi::Token::Uint(amount_in),
         ]);
 
-        if let Ok(result) = provider
-            .call(
-                &ethers::types::TransactionRequest::default()
-                    .to(*address)
-                    .data(call_data)
-                    .into(), // Convert to TypedTransaction
-            )
-            .await
+        let result = provider
+        .call(
+            &ethers::types::TransactionRequest::default()
+                .to(*address)
+                .data(call_data)
+                .into(), 
+            None
+        )
+        .await?;
+        info!("💾 Call result: {:?}", result);
         {
             let price = U256::from_big_endian(&result[0..32]);
             info!("💱 {} Price: {}", dex, price);
