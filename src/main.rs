@@ -162,7 +162,7 @@ async fn simulate_arbitrage(
     token_out: Address,
     amount_in: U256,
     provider: Arc<Provider<Ws>>,
-) {
+) -> Result<(), Box<dyn std::error::Error>> {
     info!("🔄 Starting Arbitrage Simulation...");
     info!("🪙 Token In: {:?}", token_in);
     info!("🪙 Token Out: {:?}", token_out);
