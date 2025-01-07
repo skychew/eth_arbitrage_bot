@@ -33,14 +33,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     let ws_url = std::env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
-    info!("🔗 Connecting to Ethereum WebSocket: {}", ws_url);
+    info!("🔗 Connecting to Eth WebSocket: {}", ws_url);
     
     let provider = Provider::<Ws>::connect(ws_url).await?;
     let provider = Arc::new(provider);
 
-    info!("✅ Connected to Ethereum Node!");
-    info!("🕵️‍♂️ Listening for pending transactions...");
-    debug!("🕵️‍♂️ Debugging enabled: Listening for pending transactions...");
+    info!("✅ Eth Node Connected,listening...");
+    //info!("🕵️‍♂️ Listening, pending transactions...");
+    debug!("🕵️‍♂️ Debugging : Listening for pending transactions...");
 
     let mut stream = provider.subscribe_pending_txs().await?;
     let dex_addresses = vec![
@@ -57,8 +57,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 debug!("🔍 Checking transaction to: {:?}", transaction.to);
                 if let Some(to) = transaction.to {
                     if dex_addresses.contains(&to) {
-                        info!("🎯 DEX Transaction Detected!");
-                        info!("🔍 Transaction Hash: {:?}", tx_hash);
+                        info!("🎯 DEX Transac Detected!");
+                       // info!("🔍 Transac Hash: {:?}", tx_hash);
                         info!("From: {:?}", transaction.from);
                         info!("To: {:?}", transaction.to);
                         info!("Gas Price: {:?}", transaction.gas_price.map(|g| format_ether(g)));
