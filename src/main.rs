@@ -205,6 +205,7 @@ async fn simulate_arbitrage(
                 sell_price = Some(price);
             }
         }
+        Ok(())
     }
 
     if let (Some(buy), Some(sell)) = (buy_price, sell_price) {
