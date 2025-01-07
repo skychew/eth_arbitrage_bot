@@ -65,8 +65,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         info!("Value: {} ETH", format_ether(transaction.value));
                         
                         // Decode transaction input
-                        decode_input_data(&transaction.input);
-                        
                         if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input) {
                             info!("🔄 Token In: {:?}", token_in);
                             info!("🔄 Token Out: {:?}", token_out);
