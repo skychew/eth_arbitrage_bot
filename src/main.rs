@@ -108,9 +108,21 @@ fn decode_input_data(input: &Bytes) -> Option<(Address, Address, U256, Address)>
     let abi = AbiParser::default()
         .parse(&[
             "function exactInputSingle(address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)",
-            "function exactInput(bytes path, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum)",
+            "function exactInput(
+                bytes path,
+                address recipient,
+                uint256 deadline,
+                uint256 amountIn,
+                uint256 amountOutMinimum
+            )",
             "function exactOutputSingle(address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum, uint160 sqrtPriceLimitX96)",
-            "function exactOutput(bytes path, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum)"
+            "function exactOutput(
+                bytes path,
+                address recipient,
+                uint256 deadline,
+                uint256 amountOut,
+                uint256 amountInMaximum
+            )"
         ])
         .expect("Failed to parse ABI");
 
@@ -122,37 +134,59 @@ fn decode_input_data(input: &Bytes) -> Option<(Address, Address, U256, Address)>
                 .unwrap()
                 .decode_input(&input[4..])
             {
-                if let (
-                    Token::Address(token_in),
-                    Token::Address(token_out),
-                    Token::Uint(_),
-                    Token::Address(recipient),
-                    Token::Uint(amount_out),
-                    Token::Uint(_)
-                ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4], &decoded[5])
-                {
-                    return Some((*token_in, *token_out, *amount_out, *recipient));
+                if decoded.len() == 5 {
+                    if let (
+                        Token::Bytes(path),
+                        Token::Address(recipient),
+                        Token::Uint(deadline),
+                        Token::Uint(amount_out),
+                        Token::Uint(amount_in_maximum),
+                    ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
+                    {
+                        info!("🛠️ Decoded exactOutput successfully!");
+                        // Process the decoded parameters as needed
+                        // For example:
+                        // return Some((*recipient, *amount_out, *amount_in_maximum));
+                    }
+                } else {
+                    error!(
+                        "❌ Unexpected number of parameters for exactOutput: expected 5, got {}",
+                        decoded.len()
+                    );
                 }
+            } else {
+                error!("❌ Failed to decode input for exactOutput");
             }
         }
-        "f28c0498" => {
+       "f28c0498" => {
             info!("🛠️ Decoding: exactInput");
             if let Ok(decoded) = abi
                 .function("exactInput")
                 .unwrap()
                 .decode_input(&input[4..])
             {
-                if let (
-                    Token::Bytes(path),
-                    Token::Address(recipient),
-                    Token::Uint(deadline),
-                    Token::Uint(amount_in),
-                    Token::Uint(amount_out_minimum),
-                ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
-                {
-                    info!("🛠️ Decode: exactInput :success!");
-                    return Some((*recipient, *amount_in, *amount_out_minimum));
+                if decoded.len() == 5 {
+                    if let (
+                        Token::Bytes(path),
+                        Token::Address(recipient),
+                        Token::Uint(deadline),
+                        Token::Uint(amount_in),
+                        Token::Uint(amount_out_minimum),
+                    ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
+                    {
+                        info!("🛠️ Decoded exactInput successfully!");
+                        // Process the decoded parameters as needed
+                        // For example:
+                        // return Some((*recipient, *amount_in, *amount_out_minimum));
+                    }
+                } else {
+                    error!(
+                        "❌ Unexpected number of parameters for exactInput: expected 5, got {}",
+                        decoded.len()
+                    );
                 }
+            } else {
+                error!("❌ Failed to decode input for exactInput");
             }
         }
         _ => {
