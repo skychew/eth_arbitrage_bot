@@ -103,11 +103,14 @@ fn decode_input_data(input: &Bytes) -> Option<(Address, Address, U256, Address)>
 
     let selector = hex::encode(&input[0..4]);
     info!("🧩 Function Selector: 0x{}", selector);
-
+// 1. Understand the ABI of Common DEX Functions
+// Uniswap V3 Common Functions:
     let abi = AbiParser::default()
         .parse(&[
             "function exactInputSingle(address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)",
             "function exactInput(bytes path, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum)",
+            "function exactOutputSingle(address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum, uint160 sqrtPriceLimitX96)",
+            "function exactOutput(bytes path, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum)"
         ])
         .expect("Failed to parse ABI");
 
@@ -233,9 +236,3 @@ async fn simulate_arbitrage(
     }
     Ok(())
 }
-// 1. Understand the ABI of Common DEX Functions
-// Uniswap V3 Common Functions:
-exactInputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96))
-exactInput((bytes path, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum))
-exactOutputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum, uint160 sqrtPriceLimitX96))
-exactOutput((bytes path, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum))
