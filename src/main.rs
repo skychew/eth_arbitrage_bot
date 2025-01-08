@@ -164,7 +164,6 @@ fn decode_input_data(input: &Bytes) -> Option<(Address, Address, U256, Address)>
 /// Simulate arbitrage opportunity based on detected DEX transaction
 use std::collections::HashMap;
 
-
 async fn simulate_arbitrage(
     token_in: Address,
     token_out: Address,
@@ -234,3 +233,9 @@ async fn simulate_arbitrage(
     }
     Ok(())
 }
+// 1. Understand the ABI of Common DEX Functions
+// Uniswap V3 Common Functions:
+exactInputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96))
+exactInput((bytes path, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum))
+exactOutputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum, uint160 sqrtPriceLimitX96))
+exactOutput((bytes path, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum))
