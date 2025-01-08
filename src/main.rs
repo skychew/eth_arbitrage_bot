@@ -143,15 +143,15 @@ fn decode_input_data(input: &Bytes) -> Option<(Address, Address, U256, Address)>
                 .decode_input(&input[4..])
             {
                 if let (
-                    Token::Address(token_in),
-                    Token::Address(token_out),
-                    Token::Uint(_),
+                    Token::Bytes(path),
                     Token::Address(recipient),
+                    Token::Uint(deadline),
                     Token::Uint(amount_in),
-                    Token::Uint(_)
-                ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4], &decoded[5])
+                    Token::Uint(amount_out_minimum),
+                ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
                 {
-                    return Some((*token_in, *token_out, *amount_in, *recipient));
+                    info!("🛠️ Decode: exactInput :success!");
+                    return Some((*recipient, *amount_in, *amount_out_minimum));
                 }
             }
         }
