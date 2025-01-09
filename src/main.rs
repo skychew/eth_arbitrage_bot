@@ -194,7 +194,7 @@ fn decode_input_data(input: &Bytes) -> Option<(Address, Address, U256, Address)>
             }
         }
         _ => {
-            info!("❓ Unknown Function Selector: 0x{}", selector);
+            warn!("❓ Unknown Function Selector: 0x{}", selector);
             info!("🔑 Raw Input Data: {:?}", hex::encode(&input));
         }
     }
@@ -332,8 +332,8 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option
 }
 
 fn is_fatal_error(error: &ProviderError) -> bool {
-    // Implement logic to determine if the error is fatal
-    log::error!("Fatal Error fetching transaction: {}", &ProviderError);
-    Err("Fatal Error fetching transaction ")
-    false
+    match error {
+        ProviderError::JsonRpcClientError(_) => true,
+        _ => false,
+    }
 }
