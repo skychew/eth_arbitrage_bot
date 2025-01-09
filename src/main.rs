@@ -9,9 +9,10 @@ use env_logger::{Builder, Target};
 use ethers::abi::{AbiParser, Abi, Token};
 use ethers::types::{Bytes, U256};
 
-use retry::{retry_async, delay::Exponential};
+//use retry::{retry_async, delay::Exponential};
 use retry::OperationResult;
 use ethers::types::{Transaction, H256};
+use tokio::time::{sleep, Duration};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -247,9 +248,6 @@ async fn simulate_arbitrage(
     }
     Ok(())
 }
-
-use ethers::types::{Transaction, H256};
-use tokio::time::{sleep, Duration};
 
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option<Transaction> {
     let max_retries = 5; // Maximum number of retries
