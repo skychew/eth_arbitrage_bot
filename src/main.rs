@@ -292,13 +292,13 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option
                 return Some(tx);
             }
             Ok(None) => {
-                warn!(
+                debug!(
                     "Transaction not found (attempt {}). Retrying in {:?}...",
                     attempt, delay
                 );
             }
             Err(e) => {
-                error!(
+                debug!(
                     "Error fetching transaction on attempt {}: {}. Retrying in {:?}...",
                     attempt, e, delay
                 );
@@ -310,7 +310,6 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option
         delay *= 2; // Exponential backoff
     }
 
-    error!("Failed to fetch transaction after {} attempts", max_retries);
     info!("Failed to fetch transaction after {} attempts", max_retries);
     None
 }
