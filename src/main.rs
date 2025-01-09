@@ -3,7 +3,7 @@ use ethers::providers::{Provider, Ws, StreamExt};
 use ethers::utils::format_ether;
 use std::sync::Arc;
 use tokio;
-use log::{info, error, debug};
+use log::{info, warn, error, debug};
 use std::fs::OpenOptions;
 use env_logger::{Builder, Target};
 use ethers::abi::{AbiParser, Abi, Token};
@@ -248,40 +248,45 @@ async fn simulate_arbitrage(
     Ok(())
 }
 
-
+use ethers::types::{Transaction, H256};
+use tokio::time::{sleep, Duration};
 
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option<Transaction> {
-    let retry_strategy = Exponential::from_millis(10).take(5); // Exponential backoff starting at 10ms, 5 attempts
+    let max_retries = 5; // Maximum number of retries
+    let mut attempt = 0;
+    let mut delay = Duration::from_millis(10); // Initial delay
 
-    retry_async(retry_strategy, |current_try| {
-        let provider = provider.clone();
-        async move {
-            match provider.get_transaction(tx_hash).await {
-                Ok(Some(tx)) => {
-                    log::info!("Transaction fetched successfully on attempt {}", current_try + 1);
-                    OperationResult::Ok(tx) // Mark operation as successful
-                }
-                Ok(None) => {
-                    log::warn!(
-                        "Transaction not found (attempt {}). Retrying...",
-                        current_try + 1
-                    );
-                    OperationResult::Retry("Transaction not found") // Retry the operation
-                }
-                Err(e) => {
-                    log::error!(
-                        "Error fetching transaction on attempt {}: {}. Retrying...",
-                        current_try + 1,
-                        e
-                    );
-                    OperationResult::Retry("Error fetching transaction") // Retry on error
-                }
+    while attempt < max_retries {
+        attempt += 1;
+
+        match provider.get_transaction(tx_hash).await {
+            Ok(Some(tx)) => {
+                info!("Transaction fetched successfully on attempt {}", attempt);
+                return Some(tx);
+            }
+            Ok(None) => {
+                warn!(
+                    "Transaction not found (attempt {}). Retrying in {:?}...",
+                    attempt, delay
+                );
+            }
+            Err(e) => {
+                error!(
+                    "Error fetching transaction on attempt {}: {}. Retrying in {:?}...",
+                    attempt, e, delay
+                );
             }
         }
-    })
-    .await
-    .ok()
+
+        // Wait before retrying
+        sleep(delay).await;
+        delay *= 2; // Exponential backoff
+    }
+
+    error!("Failed to fetch transaction after {} attempts", max_retries);
+    None
 }
+
 fn is_fatal_error(error: &ProviderError) -> bool {
     match error {
         ProviderError::JsonRpcClientError(_) => true,
