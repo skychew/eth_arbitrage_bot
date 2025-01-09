@@ -2,6 +2,7 @@ use ethers::prelude::*;
 use ethers::providers::{Provider, Ws, StreamExt};
 use ethers::utils::format_ether;
 use std::sync::Arc;
+use tokio::sync::Semaphore; //use semaphore to limit the number of concurrent requests 500 per second for Infura
 use tokio;
 use log::{info, warn, error, debug};
 use log::LevelFilter; //declare here so that we can overwrite in command line
@@ -19,6 +20,8 @@ use tokio::time::{sleep, Duration};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment variables
     dotenv::dotenv().ok();
+    // Maximum 500 requests per second for Infura
+    let rate_limiter = Arc::new(Semaphore::new(498)); 
 
     // Initialize logging
     let log_file = OpenOptions::new()
@@ -74,7 +77,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             •	Finally, the bot calls simulate_arbitrage to check for profitable arbitrage opportunities.
             ===========
         */
-        if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash).await {
+        if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash, rate_limiter.clone()).await {
             if let Some(to) = transaction.to {
                 if dex_addresses.contains(&to) {
                     info!("DEX Transaction Detected!");
@@ -278,7 +281,7 @@ async fn simulate_arbitrage(
     Future if we want to ensure we dont miss any transaction, we can use higher retry count 
     and lower delay time if we want to compete for arbitrage opportunities but we will need more transaction credits.
  */
-async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option<Transaction> {
+async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limiter: Arc<Semaphore>) -> Option<Transaction> {
     let max_retries = 4; // Maximum number of retries 
     let mut attempt = 0;
     let mut delay = Duration::from_millis(5000); // Initial delay
