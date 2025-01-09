@@ -1,105 +1,93 @@
 use ethers::prelude::*;
 use ethers::providers::{Provider, Ws, StreamExt};
-use ethers::utils::{format_ether, hex};
+use ethers::utils::format_ether;
 use std::sync::Arc;
 use tokio;
 use log::{info, error, debug};
 use std::fs::OpenOptions;
 use env_logger::{Builder, Target};
-use ethers::abi::{AbiParser, Token};
+use ethers::abi::{AbiParser, Abi, Token};
 use ethers::types::{Bytes, U256};
-
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    //load environment variables from a .env file, ok() is used to ignore errors, not panic.
+    // Load environment variables
     dotenv::dotenv().ok();
-  
-    // Log to file and console using env_logger
+
+    // Initialize logging
     let log_file = OpenOptions::new()
         .create(true)
         .append(true)
         .open("bot_logs.log")
         .expect("Failed to open log file");
-
     Builder::new()
         .target(Target::Pipe(Box::new(log_file)))
         .filter(None, log::LevelFilter::Info)
         .init();
 
+    // Connect to Ethereum provider
     let ws_url = std::env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
-    info!("🔗 Connecting to Eth WebSocket: {}", ws_url);
-    
+    info!("Connecting to Eth WebSocket: {}", ws_url);
     let provider = Provider::<Ws>::connect(ws_url).await?;
     let provider = Arc::new(provider);
+    info!("✅ Eth Node Connected, listening...");
 
-    info!("✅ Eth Node Connected,listening...");
-    //info!("🕵️‍♂️ Listening, pending transactions...");
-    debug!("🕵️‍♂️ Debugging : Listening for pending transactions...");
+    // Define the ABI
+    let abi = AbiParser::default()
+        .parse(&[
+            "function exactInputSingle(address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)",
+            "function exactInput(bytes path, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum)",
+            "function exactOutputSingle(address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum, uint160 sqrtPriceLimitX96)",
+            "function exactOutput(bytes path, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum)",
+        ])
+        .expect("Failed to parse ABI");
 
+    // Subscribe to pending transactions
     let mut stream = provider.subscribe_pending_txs().await?;
     let dex_addresses = vec![
-        "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse::<Address>()?, // Uniswap V2 Router
-        "0xe592427a0aece92de3edee1f18e0157c05861564".parse::<Address>()?, // Uniswap V3 Router       
-        "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse::<Address>()?, // SushiSwap Router
+        "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse()?, // Uniswap V2 Router
+        "0xe592427a0aece92de3edee1f18e0157c05861564".parse()?, // Uniswap V3 Router
+        "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse()?, // SushiSwap Router
     ];
 
     while let Some(tx_hash) = stream.next().await {
-        debug!("📝 Pending Transaction: {:?}", tx_hash);
+        debug!("Pending Transaction: {:?}", tx_hash);
 
+        if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash).await {
+            if let Some(to) = transaction.to {
+                if dex_addresses.contains(&to) {
+                    info!("DEX Transaction Detected!");
+                    info!("From: {:?}", transaction.from);
+                    info!("To: {:?}", transaction.to);
+                    info!("Gas Price: {:?}", transaction.gas_price.map(|g| format_ether(g)));
+                    info!("Value: {} ETH", format_ether(transaction.value));
 
-        //if let Ok(tx) = provider.get_transaction(tx_hash).await { 
-        if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash).await {//use retry method because api calls has large fail rate 45%ish.
-            if let Some(transaction) = tx {
-                debug!("🔍 Checking transaction to: {:?}", transaction.to);
-                if let Some(to) = transaction.to {
-                    if dex_addresses.contains(&to) {
-                        info!("🎯 DEX Transac Detected!");
-                       // info!("🔍 Transac Hash: {:?}", tx_hash);
-                        info!("From: {:?}", transaction.from);
-                        info!("To: {:?}", transaction.to);
-                        info!("Gas Price: {:?}", transaction.gas_price.map(|g| format_ether(g)));
-                        info!("Value: {} ETH", format_ether(transaction.value));
-                        
-                        // Decode transaction input
-                        if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input) {
-                            info!("🔄 Starting Arbitrage Simulation...");
-                            info!("🪙 Token In: {:?}", token_in);
-                            info!("🪙 Token Out: {:?}", token_out);
-                            info!("💰 Amount In: {:?}", amount_in);
-                            info!("👤 Recipient: {:?}", recipient);
-                        
-                            // Call simulate_arbitrage
-                            match simulate_arbitrage(token_in, token_out, amount_in, Arc::clone(&provider)).await 
-                            {
-                                Ok(_) => {
-                                    //do nothing
-                                }
-                                Err(e) => {
-                                    eprintln!("Error simulate_arbitrage: {:?}", e);
-                                }
-                            }
+                    // Decode transaction input
+                    if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
+                        info!("🔄 Starting Arbitrage Simulation...");
+                        info!("🪙 Token In: {:?}", token_in);
+                        info!("🪙 Token Out: {:?}", token_out);
+                        info!("💰 Amount In: {:?}", amount_in);
+                        info!("👤 Recipient: {:?}", recipient);
+
+                        // Call simulate_arbitrage
+                        match simulate_arbitrage(token_in, token_out, amount_in, Arc::clone(&provider)).await {
+                            Ok(_) => { /* Simulation successful */ }
+                            Err(e) => { error!("Error in simulate_arbitrage: {:?}", e); }
                         }
                     }
-                } else {
-                    debug!("❌ E0:Transaction `to` address is None.");
                 }
-            } else {
-                debug!("❌ E1:Could not fetch transaction details for {:?}", tx_hash);
             }
-        } else {
-            debug!("❌ E2:Error fetching transaction details for {:?}", tx_hash);
         }
-    }} else {
-        debug!("❌ E3:Could not fetch transaction details for {:?}", tx_hash);
     }
 
     Ok(())
 }
 
+// Define fetch_transaction and decode_input_data functions here
+
 /// Decode DEX swap transaction input data
-// Updated decode_input_data function
-fn decode_input_data(input: &Bytes) -> Option<(Address, Address, U256, Address)> {
+fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256, Address)> {
     if input.is_empty() {
         error!("❌ Input data is empty, skipping...");
         return None;
@@ -107,28 +95,6 @@ fn decode_input_data(input: &Bytes) -> Option<(Address, Address, U256, Address)>
 
     let selector = hex::encode(&input[0..4]);
     info!("🧩 Function Selector: 0x{}", selector);
-// 1. Understand the ABI of Common DEX Functions
-// Uniswap V3 Common Functions:
-    let abi = AbiParser::default()
-        .parse(&[
-            "function exactInputSingle(address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)",
-            "function exactInput(
-                bytes path,
-                address recipient,
-                uint256 deadline,
-                uint256 amountIn,
-                uint256 amountOutMinimum
-            )",
-            "function exactOutputSingle(address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum, uint160 sqrtPriceLimitX96)",
-            "function exactOutput(
-                bytes path,
-                address recipient,
-                uint256 deadline,
-                uint256 amountOut,
-                uint256 amountInMaximum
-            )"
-        ])
-        .expect("Failed to parse ABI");
 
     match selector.as_str() {
         "414bf389" => {
@@ -275,60 +241,27 @@ async fn simulate_arbitrage(
     Ok(())
 }
 
-use retry::{retry_with_index, delay::Exponential};
-use ethers::types::H256;
-use std::time::Duration;
+use retry::{retry, delay::Exponential};
+use ethers::types::{Transaction, H256};
+use std::sync::Arc;
+use ethers::providers::{Provider, Ws};
 
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option<Transaction> {
     let retry_strategy = Exponential::from_millis(10).take(5); // Exponential backoff starting at 10ms, 5 attempts
 
-    retry_with_index(retry_strategy, |current_try| {
-        let provider = provider.clone();
-        async move {
-            match provider.get_transaction(tx_hash).await {
-                Ok(Some(tx)) => Ok(tx),
-                Ok(None) => {
-                    log::warn!("Transaction not found, attempt {}", current_try);
-                    Err("Transaction not found")
-                }
-                Err(e) => {
-                    log::error!("Error fetching transaction: {}, attempt {}", e, current_try);
-                    Err("Error fetching transaction")
-                }
+    retry(retry_strategy, || async {
+        match provider.get_transaction(tx_hash).await {
+            Ok(Some(tx)) => Ok(tx),
+            Ok(None) => {
+                log::warn!("Transaction not found, retrying...");
+                Err("Transaction not found")
+            }
+            Err(e) => {
+                log::error!("Error fetching transaction: {}, retrying...", e);
+                Err("Error fetching transaction")
             }
         }
-    })
-    .await
-    .ok()
-}
-
-use retry::OperationResult;
-
-async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option<Transaction> {
-    let retry_strategy = Exponential::from_millis(10).take(5);
-
-    retry_with_index(retry_strategy, |current_try| {
-        let provider = provider.clone();
-        async move {
-            match provider.get_transaction(tx_hash).await {
-                Ok(Some(tx)) => OperationResult::Ok(tx),
-                Ok(None) => {
-                    log::warn!("Transaction not found, attempt {}", current_try);
-                    OperationResult::Retry("Transaction not found")
-                }
-                Err(e) => {
-                    log::error!("Error fetching transaction: {}, attempt {}", e, current_try);
-                    if is_fatal_error(&e) {
-                        OperationResult::Err("Fatal error fetching transaction")
-                    } else {
-                        OperationResult::Retry("Transient error fetching transaction")
-                    }
-                }
-            }
-        }
-    })
-    .await
-    .ok()
+    }).await.ok()
 }
 
 fn is_fatal_error(error: &ProviderError) -> bool {
