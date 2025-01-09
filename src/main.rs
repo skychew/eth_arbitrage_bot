@@ -244,27 +244,42 @@ async fn simulate_arbitrage(
     Ok(())
 }
 
-use retry::{retry, delay::Exponential};
+use retry::{retry_async, delay::Exponential};
+use retry::OperationResult;
 use ethers::types::{Transaction, H256};
 
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option<Transaction> {
     let retry_strategy = Exponential::from_millis(10).take(5); // Exponential backoff starting at 10ms, 5 attempts
 
-    retry(retry_strategy, || async {
-        match provider.get_transaction(tx_hash).await {
-            Ok(Some(tx)) => Ok(tx),
-            Ok(None) => {
-                log::warn!("Transaction not found, retrying...");
-                Err("Transaction not found")
-            }
-            Err(e) => {
-                log::error!("Error fetching transaction: {}, retrying...", e);
-                Err("Error fetching transaction")
+    retry_async(retry_strategy, |current_try| {
+        let provider = provider.clone();
+        async move {
+            match provider.get_transaction(tx_hash).await {
+                Ok(Some(tx)) => {
+                    log::info!("Transaction fetched successfully on attempt {}", current_try + 1);
+                    OperationResult::Ok(tx) // Mark operation as successful
+                }
+                Ok(None) => {
+                    log::warn!(
+                        "Transaction not found (attempt {}). Retrying...",
+                        current_try + 1
+                    );
+                    OperationResult::Retry("Transaction not found") // Retry the operation
+                }
+                Err(e) => {
+                    log::error!(
+                        "Error fetching transaction on attempt {}: {}. Retrying...",
+                        current_try + 1,
+                        e
+                    );
+                    OperationResult::Retry("Error fetching transaction") // Retry on error
+                }
             }
         }
-    }).await.ok()
+    })
+    .await
+    .ok()
 }
-
 fn is_fatal_error(error: &ProviderError) -> bool {
     match error {
         ProviderError::JsonRpcClientError(_) => true,
