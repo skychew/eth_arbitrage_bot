@@ -127,7 +127,7 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                         Token::Address(recipient),
                         Token::Uint(_deadline),
                         Token::Uint(amount_out),
-                        Token::Uint(amount_in_maximum),
+                        Token::Uint(_amount_in_maximum),
                     ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
                     {
                         if path.len() >= 40 {
