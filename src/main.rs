@@ -47,7 +47,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     while let Some(tx_hash) = stream.next().await {
         debug!("📝 Pending Transaction: {:?}", tx_hash);
 
-        if let Ok(tx) = provider.get_transaction(tx_hash).await {
+
+        //if let Ok(tx) = provider.get_transaction(tx_hash).await { 
+        if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash).await {//use retry method because api calls has large fail rate 45%ish.
             if let Some(transaction) = tx {
                 debug!("🔍 Checking transaction to: {:?}", transaction.to);
                 if let Some(to) = transaction.to {
@@ -80,14 +82,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                 } else {
-                    debug!("❌ Transaction `to` address is None.");
+                    debug!("❌ E0:Transaction `to` address is None.");
                 }
             } else {
-                debug!("❌ Could not fetch transaction details for {:?}", tx_hash);
+                debug!("❌ E1:Could not fetch transaction details for {:?}", tx_hash);
             }
         } else {
-            debug!("❌ Error fetching transaction details for {:?}", tx_hash);
+            debug!("❌ E2:Error fetching transaction details for {:?}", tx_hash);
         }
+    }} else {
+        debug!("❌ E3:Could not fetch transaction details for {:?}", tx_hash);
     }
 
     Ok(())
@@ -269,4 +273,67 @@ async fn simulate_arbitrage(
         error!("❌ Failed to fetch prices from DEXs.");
     }
     Ok(())
+}
+
+use retry::{retry_with_index, delay::Exponential};
+use ethers::types::H256;
+use std::time::Duration;
+
+async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option<Transaction> {
+    let retry_strategy = Exponential::from_millis(10).take(5); // Exponential backoff starting at 10ms, 5 attempts
+
+    retry_with_index(retry_strategy, |current_try| {
+        let provider = provider.clone();
+        async move {
+            match provider.get_transaction(tx_hash).await {
+                Ok(Some(tx)) => Ok(tx),
+                Ok(None) => {
+                    log::warn!("Transaction not found, attempt {}", current_try);
+                    Err("Transaction not found")
+                }
+                Err(e) => {
+                    log::error!("Error fetching transaction: {}, attempt {}", e, current_try);
+                    Err("Error fetching transaction")
+                }
+            }
+        }
+    })
+    .await
+    .ok()
+}
+
+use retry::OperationResult;
+
+async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option<Transaction> {
+    let retry_strategy = Exponential::from_millis(10).take(5);
+
+    retry_with_index(retry_strategy, |current_try| {
+        let provider = provider.clone();
+        async move {
+            match provider.get_transaction(tx_hash).await {
+                Ok(Some(tx)) => OperationResult::Ok(tx),
+                Ok(None) => {
+                    log::warn!("Transaction not found, attempt {}", current_try);
+                    OperationResult::Retry("Transaction not found")
+                }
+                Err(e) => {
+                    log::error!("Error fetching transaction: {}, attempt {}", e, current_try);
+                    if is_fatal_error(&e) {
+                        OperationResult::Err("Fatal error fetching transaction")
+                    } else {
+                        OperationResult::Retry("Transient error fetching transaction")
+                    }
+                }
+            }
+        }
+    })
+    .await
+    .ok()
+}
+
+fn is_fatal_error(error: &ProviderError) -> bool {
+    // Implement logic to determine if the error is fatal
+    log::error!("Fatal Error fetching transaction: {}", &ProviderError);
+    Err("Fatal Error fetching transaction ")
+    false
 }
