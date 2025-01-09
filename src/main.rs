@@ -4,6 +4,7 @@ use ethers::utils::format_ether;
 use std::sync::Arc;
 use tokio;
 use log::{info, warn, error, debug};
+use log::LevelFilter; //declare here so that we can overwrite in command line
 use std::fs::OpenOptions;
 use env_logger::{Builder, Target};
 use ethers::abi::{AbiParser, Abi, Token};
@@ -27,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("Failed to open log file");
     Builder::new()
         .target(Target::Pipe(Box::new(log_file)))
-        .filter(None, log::LevelFilter::Info)
+        .filter(None, LevelFilter::Info)
         .init();
 
     // Connect to Ethereum provider
