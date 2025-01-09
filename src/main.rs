@@ -10,7 +10,7 @@ use ethers::abi::{AbiParser, Abi, Token};
 use ethers::types::{Bytes, U256};
 
 //use retry::{retry_async, delay::Exponential};
-use retry::OperationResult;
+//use retry::OperationResult;
 use ethers::types::{Transaction, H256};
 use tokio::time::{sleep, Duration};
 
@@ -118,75 +118,71 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
 
     // Match the selector against known function signatures
     match selector.as_str() {
-        // Match for "exactOutput" function
         "414bf389" => {
             info!("🛠️ Decoding: exactOutput");
-            // Use the provided ABI to decode the function input
-            match abi.function("exactOutput").and_then(|func| func.decode_input(&input[4..])) {
-                Ok(decoded) => {
-                    if decoded.len() == 5 {
-                        if let (
-                            Token::Bytes(path),
-                            Token::Address(recipient),
-                            Token::Uint(_deadline),
-                            Token::Uint(amount_out),
-                            Token::Uint(amount_in_maximum),
-                        ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
-                        {
-                            info!("🛠️ Decoded exactOutput successfully!");
-                            // Example return value with extracted data
-                            return Some((*recipient, *recipient, *amount_out, *recipient));
+            if let Ok(decoded) = abi.function("exactOutput").and_then(|func| func.decode_input(&input[4..])) {
+                if decoded.len() == 5 {
+                    if let (
+                        Token::Bytes(path),
+                        Token::Address(recipient),
+                        Token::Uint(_deadline),
+                        Token::Uint(amount_out),
+                        Token::Uint(amount_in_maximum),
+                    ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
+                    {
+                        if path.len() >= 40 {
+                            let token_in = Address::from_slice(&path[0..20]);
+                            let token_out = Address::from_slice(&path[path.len() - 20..]);
+                            return Some((token_in, token_out, *amount_out, *recipient));
+                        } else {
+                            error!("❌ Invalid path length for exactOutput: {:?}", path.len());
                         }
-                    } else {
-                        error!(
-                            "❌ Unexpected number of parameters for exactOutput: expected 5, got {}",
-                            decoded.len()
-                        );
                     }
+                } else {
+                    error!(
+                        "❌ Unexpected number of parameters for exactOutput: expected 5, got {}",
+                        decoded.len()
+                    );
                 }
-                Err(e) => {
-                    error!("❌ Failed to decode exactOutput: {:?}", e);
-                }
+            } else {
+                error!("❌ Failed to decode exactOutput");
             }
         }
-        // Match for "exactInput" function
         "f28c0498" => {
             info!("🛠️ Decoding: exactInput");
-            // Use the provided ABI to decode the function input
-            match abi.function("exactInput").and_then(|func| func.decode_input(&input[4..])) {
-                Ok(decoded) => {
-                    if decoded.len() == 5 {
-                        if let (
-                            Token::Bytes(path),
-                            Token::Address(recipient),
-                            Token::Uint(_deadline),
-                            Token::Uint(amount_in),
-                            Token::Uint(_amount_out_minimum),
-                        ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
-                        {
-                            info!("🛠️ Decoded exactInput successfully!");
-                            // Example return value with extracted data
-                            return Some((*recipient, *recipient, *amount_in, *recipient));
+            if let Ok(decoded) = abi.function("exactInput").and_then(|func| func.decode_input(&input[4..])) {
+                if decoded.len() == 5 {
+                    if let (
+                        Token::Bytes(path),
+                        Token::Address(recipient),
+                        Token::Uint(_deadline),
+                        Token::Uint(amount_in),
+                        Token::Uint(_amount_out_minimum),
+                    ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
+                    {
+                        if path.len() >= 40 {
+                            let token_in = Address::from_slice(&path[0..20]);
+                            let token_out = Address::from_slice(&path[path.len() - 20..]);
+                            return Some((token_in, token_out, *amount_in, *recipient));
+                        } else {
+                            error!("❌ Invalid path length for exactInput: {:?}", path.len());
                         }
-                    } else {
-                        error!(
-                            "❌ Unexpected number of parameters for exactInput: expected 5, got {}",
-                            decoded.len()
-                        );
                     }
+                } else {
+                    error!(
+                        "❌ Unexpected number of parameters for exactInput: expected 5, got {}",
+                        decoded.len()
+                    );
                 }
-                Err(e) => {
-                    error!("❌ Failed to decode exactInput: {:?}", e);
-                }
+            } else {
+                error!("❌ Failed to decode exactInput");
             }
         }
-        // Handle unknown selectors
         _ => {
             info!("❓ Unknown Function Selector: 0x{}", selector);
             info!("🔑 Raw Input Data: {:?}", hex::encode(&input));
         }
     }
-
     // Return None if no valid decoding occurred
     None
 }
