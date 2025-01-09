@@ -310,5 +310,6 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option
     }
 
     error!("Failed to fetch transaction after {} attempts", max_retries);
+    info!("Failed to fetch transaction after {} attempts", max_retries);
     None
 }
