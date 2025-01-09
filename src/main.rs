@@ -286,6 +286,9 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
     let mut attempt = 0;
     let mut delay = Duration::from_millis(5000); // Initial delay
 
+    // Acquire a permit from the rate limiter
+    let _permit = rate_limiter.acquire().await.unwrap();
+    
     while attempt < max_retries {
         attempt += 1;
 
@@ -313,6 +316,6 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
         delay *= 2; // Exponential backoff
     }
 
-    info!("Failed to fetch transaction after {} attempts", max_retries);
+    warn!("Failed to fetch transaction after {} attempts", max_retries);
     None
 }
