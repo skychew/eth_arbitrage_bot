@@ -9,6 +9,10 @@ use env_logger::{Builder, Target};
 use ethers::abi::{AbiParser, Abi, Token};
 use ethers::types::{Bytes, U256};
 
+use retry::{retry_async, delay::Exponential};
+use retry::OperationResult;
+use ethers::types::{Transaction, H256};
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment variables
@@ -244,9 +248,7 @@ async fn simulate_arbitrage(
     Ok(())
 }
 
-use retry::{retry_async, delay::Exponential};
-use retry::OperationResult;
-use ethers::types::{Transaction, H256};
+
 
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option<Transaction> {
     let retry_strategy = Exponential::from_millis(10).take(5); // Exponential backoff starting at 10ms, 5 attempts
