@@ -61,7 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     while let Some(tx_hash) = stream.next().await {
-        debug!("Pending Transaction: {:?}", tx_hash);
+        debug!("Rcvd Pending Transaction: {:?}", tx_hash);
         /* ========
             •	What It Does:
                 For every pending transaction hash received from the mempool, the bot tries to fetch the full transaction details using get_transaction.
