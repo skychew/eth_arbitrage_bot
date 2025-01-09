@@ -47,7 +47,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ])
         .expect("Failed to parse ABI");
 
-    // Subscribe to pending transactions
+    /* ======== Subscribe to pending transactions
+	•	What It Does: This connects to the Ethereum mempool and listens for all pending transactions (those broadcast but not yet mined into a block).
+	•	Key Points:
+	•	The subscription provides transaction hashes, not full transaction details.
+	•	The subscription stream should continue indefinitely, feeding new transaction hashes as they appear.
+    =========== */
     let mut stream = provider.subscribe_pending_txs().await?;
     let dex_addresses = vec![
         "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse()?, // Uniswap V2 Router
@@ -57,7 +62,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     while let Some(tx_hash) = stream.next().await {
         debug!("Pending Transaction: {:?}", tx_hash);
-
+        /* ========
+            •	What It Does:
+                For every pending transaction hash received from the mempool, the bot tries to fetch the full transaction details using get_transaction.
+            •	Key Points:
+            •	The get_transaction function is a blocking call that waits for the transaction to be mined.
+            •	The function retries up to five times with exponential backoff.
+            •	Once the transaction is fetched, the bot checks if the transaction is a DEX swap by comparing the to address with known DEX router addresses.
+            •	If the transaction is a DEX swap, the bot decodes the input data to extract the token addresses, amounts, and recipient.
+            •	Finally, the bot calls simulate_arbitrage to check for profitable arbitrage opportunities.
+            ===========
+        */
         if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash).await {
             if let Some(to) = transaction.to {
                 if dex_addresses.contains(&to) {
@@ -248,11 +263,28 @@ async fn simulate_arbitrage(
     }
     Ok(())
 }
-
+/* ======== Fetch Full Transaction Details
+	•	What It Does: 
+        For every pending transaction hash received from the mempool, the bot tries to fetch the full transaction details using get_transaction.
+	•	Issue Observed:
+	•	Sometimes the fetched transaction is missing (Ok(None)), likely due to one of the following:
+	•	Propagation Delay: The transaction hasn’t fully propagated to the node you’re connected to.
+	•	Dropped Transactions: The transaction was dropped due to low gas fees or replacement.
+	•	Rate Limiting/Provider Issues: The provider (e.g., Infura) may throttle requests if you’re exceeding its rate limits.
+    •	Network Congestion: The Ethereum network is congested, and the transaction is stuck in the mempool.
+    •	To handle these issues, the bot retries fetching the transaction up to five times with exponential backoff.
+    ===========
+    Recommended: 4 max_retries, 5000ms initial delay (5 second)
+    4 retries with exponential backoff (5s, 10s, 20s, 40s) because if the transaction is not found after 3 retries, it’s likely not going to be mined. 
+    Average time for a block to processed in Ethereum is 13 seconds.
+    ===========
+    Future if we want to ensure we dont miss any transaction, we can use higher retry count 
+    and lower delay time if we want to compete for arbitrage opportunities but we will need more transaction credits.
+ */
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option<Transaction> {
-    let max_retries = 5; // Maximum number of retries
+    let max_retries = 4; // Maximum number of retries 
     let mut attempt = 0;
-    let mut delay = Duration::from_millis(1000); // Initial delay
+    let mut delay = Duration::from_millis(5000); // Initial delay
 
     while attempt < max_retries {
         attempt += 1;
