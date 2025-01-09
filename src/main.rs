@@ -20,6 +20,7 @@ use tokio::time::{sleep, Duration};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment variables
     dotenv::dotenv().ok();
+    
     // Maximum 500 requests per second for Infura
     let rate_limiter = Arc::new(Semaphore::new(498)); 
 
@@ -288,7 +289,7 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
 
     // Acquire a permit from the rate limiter
     let _permit = rate_limiter.acquire().await.unwrap();
-    
+
     while attempt < max_retries {
         attempt += 1;
 
