@@ -252,7 +252,7 @@ async fn simulate_arbitrage(
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option<Transaction> {
     let max_retries = 5; // Maximum number of retries
     let mut attempt = 0;
-    let mut delay = Duration::from_millis(4000); // Initial delay
+    let mut delay = Duration::from_millis(1000); // Initial delay
 
     while attempt < max_retries {
         attempt += 1;
