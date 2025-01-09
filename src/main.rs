@@ -316,10 +316,3 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option
     error!("Failed to fetch transaction after {} attempts", max_retries);
     None
 }
-
-fn is_fatal_error(error: &ProviderError) -> bool {
-    match error {
-        ProviderError::JsonRpcClientError(_) => true,
-        _ => false,
-    }
-}
