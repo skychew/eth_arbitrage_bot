@@ -162,7 +162,7 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
         }
         // Handle unknown selectors
         _ => {
-            warn!("❓ Unknown Function Selector: 0x{}", selector);
+            info!("❓ Unknown Function Selector: 0x{}", selector);
             info!("🔑 Raw Input Data: {:?}", hex::encode(&input));
         }
     }
@@ -246,8 +246,6 @@ async fn simulate_arbitrage(
 
 use retry::{retry, delay::Exponential};
 use ethers::types::{Transaction, H256};
-use std::sync::Arc;
-use ethers::providers::{Provider, Ws};
 
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256) -> Option<Transaction> {
     let retry_strategy = Exponential::from_millis(10).take(5); // Exponential backoff starting at 10ms, 5 attempts
