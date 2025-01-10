@@ -285,7 +285,7 @@ async fn simulate_arbitrage(
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limiter: Arc<Semaphore>) -> Option<Transaction> {
     let max_retries = 4; // Maximum number of retries 
     let mut attempt = 0;
-    let mut delay = Duration::from_millis(5000); // Initial delay
+    let mut delay = Duration::from_millis(500); // Initial delay
 
     // Acquire a permit from the rate limiter
     let _permit = rate_limiter.acquire().await.unwrap();
