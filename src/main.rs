@@ -260,7 +260,7 @@ async fn simulate_arbitrage(
             info!("❌ No profitable arbitrage found.");
         }
     } else {
-        error!("❌ Failed to fetch prices from DEXs.");
+        warn!("❌ Failed to fetch prices from DEXs.");
     }
     Ok(())
 }
