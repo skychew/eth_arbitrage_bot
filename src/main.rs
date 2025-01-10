@@ -81,7 +81,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash, rate_limiter.clone()).await {
             if let Some(to) = transaction.to {
                 if dex_addresses.contains(&to) {
-                    info!("DEX Transaction Detected!");
+                    info!("DEX Transaction Detected!: {:?}", tx_hash);
                     info!("From: {:?}", transaction.from);
                     info!("To: {:?}", transaction.to);
                     info!("Gas Price: {:?}", transaction.gas_price.map(|g| format_ether(g)));
