@@ -314,11 +314,12 @@ async fn simulate_arbitrage(
         .call(
             &ethers::types::TransactionRequest::default()
                 .to(*address)
-                .data(call_data)
+                .data(call_data.clone())
+                .gas(1_000_000u64)  // High gas limit for simulation
                 .into(), 
-            None
+            None  // Use latest block
         )
-        .await?;
+        .await;
         info!("💾 Call result: {:?}", result);
         {
             let price = U256::from_big_endian(&result[0..32]);
