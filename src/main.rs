@@ -42,7 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Arc::new(provider);
     info!("✅ Eth Node Connected, listening...");
 
-    // Define the ABI
+    // Define the ABI signatures
     let abi = AbiParser::default()
         .parse(&[
             "function exactInputSingle(address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)",
@@ -109,7 +109,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/// Decode DEX swap transaction input data
+/* ======== Decode DEX swap transaction input data
+Function (selector)
+exactInputSingle (0x414bf389)
+exactOutput (0xf28c0498)
+exactOutputSingle (0xdb3e2198)
+exactInput (0xc04b8d59)
+
+========*/ 
 fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256, Address)> {
     // Check for empty input
     if input.is_empty() {
@@ -125,7 +132,7 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
 
     // Match the selector against known function signatures
     match selector.as_str() {
-        "414bf389" => {
+        "f28c0498" => {
             info!("🛠️ Decoding: exactOutput");
             match abi.function("exactOutput").and_then(|func| func.decode_input(&input[4..])) {
                 Ok(decoded) => {
@@ -161,7 +168,7 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                 }
             }
         }
-        "f28c0498" => {
+        "c04b8d59" => {
             info!("🛠️ Decoding: exactInput");
             if let Ok(decoded) = abi.function("exactInput").and_then(|func| func.decode_input(&input[4..])) {
                 if decoded.len() == 5 {
