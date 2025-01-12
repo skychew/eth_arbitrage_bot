@@ -132,6 +132,7 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
 
     // Match the selector against known function signatures
     match selector.as_str() {
+         // Decode exactOutput
         "f28c0498" => {
             info!("🛠️ Decoding: exactOutput");
             match abi.function("exactOutput").and_then(|func| func.decode_input(&input[4..])) {
@@ -168,6 +169,8 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                 }
             }
         }
+
+         // Decode exactInput
         "c04b8d59" => {
             info!("🛠️ Decoding: exactInput");
             if let Ok(decoded) = abi.function("exactInput").and_then(|func| func.decode_input(&input[4..])) {
@@ -198,6 +201,62 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                 error!("❌ Failed to decode exactInput");
             }
         }
+
+        // Decode exactInputSingle
+        "414bf389" => {
+            info!("🛠️ Decoding: exactInputSingle");
+            if let Ok(decoded) = abi.function("exactInputSingle").and_then(|func| func.decode_input(&input[4..])) {
+                if decoded.len() == 8 {
+                    if let (
+                        Token::Address(token_in),
+                        Token::Address(token_out),
+                        Token::Uint(_fee),
+                        Token::Address(recipient),
+                        Token::Uint(_deadline),
+                        Token::Uint(amount_in),
+                        Token::Uint(_amount_out_minimum),
+                        Token::Uint(_sqrt_price_limit_x96),
+                    ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4], &decoded[5], &decoded[6], &decoded[7])
+                    {
+                        info!("🛠️ Decoded exactInputSingle successfully!");
+                        return Some((*token_in, *token_out, *amount_in, *recipient));
+                    }
+                } else {
+                    error!("❌ Unexpected number of parameters for exactInputSingle: expected 8, got {}", decoded.len());
+                }
+            } else {
+                error!("❌ Failed to decode exactInputSingle");
+            }
+        }
+
+        // Decode exactOutputSingle
+        "db3e2198" => {
+            info!("🛠️ Decoding: exactOutputSingle");
+            if let Ok(decoded) = abi.function("exactOutputSingle").and_then(|func| func.decode_input(&input[4..])) {
+                if decoded.len() == 8 {
+                    if let (
+                        Token::Address(token_in),
+                        Token::Address(token_out),
+                        Token::Uint(_fee),
+                        Token::Address(recipient),
+                        Token::Uint(_deadline),
+                        Token::Uint(amount_out),
+                        Token::Uint(_amount_in_maximum),
+                        Token::Uint(_sqrt_price_limit_x96),
+                    ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4], &decoded[5], &decoded[6], &decoded[7])
+                    {
+                        info!("🛠️ Decoded exactOutputSingle successfully!");
+                        return Some((*token_in, *token_out, *amount_out, *recipient));
+                    }
+                } else {
+                    error!("❌ Unexpected number of parameters for exactOutputSingle: expected 8, got {}", decoded.len());
+                }
+            } else {
+                error!("❌ Failed to decode exactOutputSingle");
+            }
+        }
+
+        // Unknown function selector
         _ => {
             info!("❓ Unknown Function Selector: 0x{}", selector);
             info!("🔑 Raw Input Data: {:?}", hex::encode(&input));
