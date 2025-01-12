@@ -48,7 +48,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "function exactInputSingle(address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)",
             "function exactInput(bytes path, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum)",
             "function exactOutputSingle(address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum, uint160 sqrtPriceLimitX96)",
-            "function exactOutput(bytes path, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum)",
+            "function exactOutput(bytes path, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum) external payable returns (uint256 amountIn);",
         ])
         .expect("Failed to parse ABI");
 
@@ -97,8 +97,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                         // Call simulate_arbitrage
                         match simulate_arbitrage(token_in, token_out, amount_in, Arc::clone(&provider)).await {
-                            Ok(_) => { /* Simulation successful */ }
-                            Err(e) => { error!("Error in simulate_arbitrage: {:?}", e); }
+                            Ok(_) => {  info!("✅ Simulation Successful");/* Simulation successful */ }
+                            Err(e) => { error!("❌ Error in simulate_arbitrage: {:?}", e); }
                         }
                     }
                 }
@@ -127,7 +127,38 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
     match selector.as_str() {
         "414bf389" => {
             info!("🛠️ Decoding: exactOutput");
-            if let Ok(decoded) = abi.function("exactOutput").and_then(|func| func.decode_input(&input[4..])) {
+            match abi.function("exactOutput").and_then(|func| func.decode_input(&input[4..])) {
+                Ok(decoded) => {
+                    info!("🔍 Decoded Parameters: {:?}", decoded);
+                    if decoded.len() == 5 {
+                        if let (
+                            Token::Bytes(path),
+                            Token::Address(recipient),
+                            Token::Uint(_deadline),
+                            Token::Uint(amount_out),
+                            Token::Uint(_amount_in_maximum),
+                        ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
+                        {
+                            if path.len() >= 40 {
+                                info!("🛠️ Decoded exactOutput successfully!");
+                                let token_in = Address::from_slice(&path[0..20]);
+                                let token_out = Address::from_slice(&path[path.len() - 20..]);
+                                return Some((token_in, token_out, *amount_out, *recipient));
+                            } else {
+                                error!("❌ Invalid path length for exactOutput: {:?}", path.len());
+                            }
+                        } else {
+                            error!("❌ Decoding failed: Unexpected parameter structure.");
+                        }
+                    } else {
+                        error!(
+                            "❌ Unexpected number of parameters for exactOutput: expected 5, got {}",
+                            decoded.len()
+                        );
+                    }
+                }Err(e) => {
+                    error!("❌ Failed to decode exactOutput: {:?}", e);
+                }
                 if decoded.len() == 5 {
                     if let (
                         Token::Bytes(path),
