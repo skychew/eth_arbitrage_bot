@@ -100,11 +100,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             Ok(_) => {  info!("✅ Simulation Successful");/* Simulation successful */ }
                             Err(e) => {
                                 error!("❌ Simulation failed: {:?}", e);
-                                if let JsonRpcClientError::JsonRpcError(err) = &e {
+                                 // Adjusted error handling with correct type
+                                if let ethers::providers::ProviderError::JsonRpcClientError(err) = e.downcast_ref::<ethers::providers::ProviderError>().unwrap() {
                                     if err.message.contains("execution reverted") {
-                                        match err.data {
-                                            Some(ref data) => {
+                                        match &err.data {
+                                            Some(data) => {
                                                 error!("⚠️  Execution reverted with data: {:?}", data);
+
                                                 if data.to_string().contains("INSUFFICIENT_OUTPUT_AMOUNT") {
                                                     error!("🔸 Reason: Insufficient output amount (price impact too high).");
                                                 } else if data.to_string().contains("TRANSFER_FROM_FAILED") {
@@ -336,15 +338,18 @@ async fn simulate_arbitrage(
         )
         .await;
         info!("💾 Call result: {:?}", result);
-        {
-            let price = U256::from_big_endian(&result[0..32]);
-            info!("💱 {} Price: {}", dex, price);
 
+        if let Ok(res_bytes) = result {
+            let price = U256::from_big_endian(&res_bytes[0..32]);
+            info!("💱 {} Price: {}", dex, price);
+        
             if buy_price.is_none() {
                 buy_price = Some(price);
             } else {
                 sell_price = Some(price);
             }
+        } else {
+            error!("❌ Failed to fetch price data from {}", dex);
         }
     }
 
