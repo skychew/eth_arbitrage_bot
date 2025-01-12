@@ -101,30 +101,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             Err(e) => {
                                 error!("❌ Simulation failed: {:?}", e);
                                  // Adjusted error handling with correct type
-                                 if let Some(ethers::providers::ProviderError::JsonRpcClientError(json_rpc_error)) = e.downcast_ref::<ethers::providers::ProviderError>() {
-                                    if let ethers::providers::JsonRpcError { code: _, message, data } = json_rpc_error {
-                                        if message.contains("execution reverted") {
-                                            match data {
-                                                Some(ref error_data) => {
-                                                    error!("⚠️  Execution reverted with data: {:?}", error_data);
-                                                    if error_data.to_string().contains("INSUFFICIENT_OUTPUT_AMOUNT") {
-                                                        error!("🔸 Reason: Insufficient output amount (price impact too high).");
-                                                    } else if error_data.to_string().contains("TRANSFER_FROM_FAILED") {
-                                                        error!("🔸 Reason: Token transfer failed (approval issue).");
-                                                    } else {
-                                                        error!("🔸 Reason: Unknown error. Raw data: {:?}", error_data);
-                                                    }
+                                 if let Some(json_rpc_error) = e.downcast_ref::<ethers::providers::JsonRpcError>() {
+                                    if json_rpc_error.message.contains("execution reverted") {
+                                        match &json_rpc_error.data {
+                                            Some(data) => {
+                                                error!("⚠️  Execution reverted with data: {:?}", data);
+                            
+                                                if data.to_string().contains("INSUFFICIENT_OUTPUT_AMOUNT") {
+                                                    error!("🔸 Reason: Insufficient output amount (price impact too high).");
+                                                } else if data.to_string().contains("TRANSFER_FROM_FAILED") {
+                                                    error!("🔸 Reason: Token transfer failed (approval issue).");
+                                                } else {
+                                                    error!("🔸 Reason: Unknown error. Raw data: {:?}", data);
                                                 }
-                                                None => {
-                                                    error!("⚠️  Execution reverted without additional data. Possible causes:");
-                                                    error!("🔸 Incorrect function parameters");
-                                                    error!("🔸 Missing token approval");
-                                                    error!("🔸 Insufficient balance");
-                                                    error!("🔸 Gas limit too low");
-                                                }
+                                            }
+                                            None => {
+                                                error!("⚠️  Execution reverted without additional data. Possible causes:");
+                                                error!("🔸 Incorrect function parameters");
+                                                error!("🔸 Missing token approval");
+                                                error!("🔸 Insufficient balance");
+                                                error!("🔸 Gas limit too low");
                                             }
                                         }
                                     }
+                                } else {
+                                    error!("❌ Simulation failed with a non-JSON RPC error.");
                                 }
                             }
                         }
