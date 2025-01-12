@@ -110,6 +110,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /* ======== Decode DEX swap transaction input data
+Confirmed using https://www.4byte.directory/
+Paste selector to get function signature
+
 Function (selector)
 exactInputSingle (0x414bf389)
 exactOutput (0xf28c0498)
