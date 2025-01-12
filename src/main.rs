@@ -119,6 +119,8 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
 
     // Extract function selector
     let selector = hex::encode(&input[0..4]);
+    //This will print the raw input data of the transaction, which you can manually decode to verify if it matches the expected structure.
+    info!("🔑 Raw Input Data: {:?}", hex::encode(&input));
     info!("🧩 Function Selector: 0x{}", selector);
 
     // Match the selector against known function signatures
@@ -136,12 +138,15 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                     ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
                     {
                         if path.len() >= 40 {
+                            info!("🛠️ Decoded exactOutput successfully!");
                             let token_in = Address::from_slice(&path[0..20]);
                             let token_out = Address::from_slice(&path[path.len() - 20..]);
                             return Some((token_in, token_out, *amount_out, *recipient));
                         } else {
                             error!("❌ Invalid path length for exactOutput: {:?}", path.len());
                         }
+                    } else {
+                        error!("❌ Decoding failed: Unexpected parameter structure.");
                     }
                 } else {
                     error!(
