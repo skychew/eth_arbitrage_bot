@@ -98,7 +98,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         // Call simulate_arbitrage
                         match simulate_arbitrage(token_in, token_out, amount_in, Arc::clone(&provider)).await {
                             Ok(_) => {  info!("✅ Simulation Successful");/* Simulation successful */ }
-                            Err(e) => { error!("❌ Error in simulate_arbitrage: {:?}", e); }
+                            Err(e) => {
+                                error!("❌ Simulation failed: {:?}", e);
+                                if let JsonRpcClientError::JsonRpcError(err) = &e {
+                                    if err.message.contains("execution reverted") {
+                                        error!("⚠️  Simulation failed due to contract execution revert. Likely causes:");
+                                        error!("🔸 Incorrect function parameters");
+                                        error!("🔸 Missing token approval");
+                                        error!("🔸 Insufficient balance");
+                                        error!("🔸 Gas limit too low");
+                                    }
+                            }
                         }
                     }
                 }
