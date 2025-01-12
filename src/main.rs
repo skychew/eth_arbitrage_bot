@@ -159,34 +159,6 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                 }Err(e) => {
                     error!("❌ Failed to decode exactOutput: {:?}", e);
                 }
-                if decoded.len() == 5 {
-                    if let (
-                        Token::Bytes(path),
-                        Token::Address(recipient),
-                        Token::Uint(_deadline),
-                        Token::Uint(amount_out),
-                        Token::Uint(_amount_in_maximum),
-                    ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
-                    {
-                        if path.len() >= 40 {
-                            info!("🛠️ Decoded exactOutput successfully!");
-                            let token_in = Address::from_slice(&path[0..20]);
-                            let token_out = Address::from_slice(&path[path.len() - 20..]);
-                            return Some((token_in, token_out, *amount_out, *recipient));
-                        } else {
-                            error!("❌ Invalid path length for exactOutput: {:?}", path.len());
-                        }
-                    } else {
-                        error!("❌ Decoding failed: Unexpected parameter structure.");
-                    }
-                } else {
-                    error!(
-                        "❌ Unexpected number of parameters for exactOutput: expected 5, got {}",
-                        decoded.len()
-                    );
-                }
-            } else {
-                error!("❌ Failed to decode exactOutput");
             }
         }
         "f28c0498" => {
