@@ -102,12 +102,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 error!("❌ Simulation failed: {:?}", e);
                                 if let JsonRpcClientError::JsonRpcError(err) = &e {
                                     if err.message.contains("execution reverted") {
-                                        error!("⚠️  Simulation failed due to contract execution revert. Likely causes:");
-                                        error!("🔸 Incorrect function parameters");
-                                        error!("🔸 Missing token approval");
-                                        error!("🔸 Insufficient balance");
-                                        error!("🔸 Gas limit too low");
+                                        match err.data {
+                                            Some(ref data) => {
+                                                error!("⚠️  Execution reverted with data: {:?}", data);
+                                                if data.to_string().contains("INSUFFICIENT_OUTPUT_AMOUNT") {
+                                                    error!("🔸 Reason: Insufficient output amount (price impact too high).");
+                                                } else if data.to_string().contains("TRANSFER_FROM_FAILED") {
+                                                    error!("🔸 Reason: Token transfer failed (approval issue).");
+                                                } else {
+                                                    error!("🔸 Reason: Unknown error. Raw data: {:?}", data);
+                                                }
+                                            }
+                                            None => {
+                                                error!("⚠️  Execution reverted without additional data. Possible causes:");
+                                                error!("🔸 Incorrect function parameters");
+                                                error!("🔸 Missing token approval");
+                                                error!("🔸 Insufficient balance");
+                                                error!("🔸 Gas limit too low");
+                                            }
+                                        }
                                     }
+                                }
                             }
                         }
                     }
