@@ -136,33 +136,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             Ok(_) => {  info!("✅ Simulation Successful");/* Simulation successful */ }
                             Err(e) => {
                                 error!("❌ Simulation failed: {:?}", e);
-                                 // Adjusted error handling with correct type
-                                 if let ethers::providers::ProviderError::JsonRpcClientError(json_rpc_error) = e {
-                                    if json_rpc_error.message.contains("execution reverted") {
-                                        match &json_rpc_error.data {
-                                            Some(data) => {
-                                                error!("⚠️  Execution reverted with data: {:?}", data);
-                            
-                                                if data.to_string().contains("INSUFFICIENT_OUTPUT_AMOUNT") {
-                                                    error!("🔸 Reason: Insufficient output amount (price impact too high).");
-                                                } else if data.to_string().contains("TRANSFER_FROM_FAILED") {
-                                                    error!("🔸 Reason: Token transfer failed (approval issue).");
-                                                } else {
-                                                    error!("🔸 Reason: Unknown error. Raw data: {:?}", data);
-                                                }
-                                            }
-                                            None => {
-                                                error!("⚠️  Execution reverted without additional data. Possible causes:");
-                                                error!("🔸 Incorrect function parameters");
-                                                error!("🔸 Missing token approval");
-                                                error!("🔸 Insufficient balance");
-                                                error!("🔸 Gas limit too low");
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    error!("❌ Simulation failed with a non-JSON RPC error.");
-                                }
                             }
                         }
                     }
@@ -393,36 +366,9 @@ async fn simulate_arbitrage(
             } else {
                 sell_price = Some(price);
             }
-        } else if let Err(e) = result {
+        } else {
             error!("❌ Failed simulation on {}: {:?}", dex, e);
-        
-           // Corrected error handling using direct pattern matching
-            if let ethers::providers::ProviderError::JsonRpcClientError(json_rpc_error) = &e {
-                if json_rpc_error.message.contains("execution reverted") {
-                    error!("🔸 Reason: Execution reverted. Possible causes include:");
-                    error!("  - Invalid token pair");
-                    error!("  - No liquidity for the pair");
-                    error!("  - Incorrect function data");
-
-                    match &json_rpc_error.data {
-                        Some(data) => {
-                            error!("⚠️  Additional data: {:?}", data);
-                            if data.to_string().contains("INSUFFICIENT_OUTPUT_AMOUNT") {
-                                error!("🔸 Reason: Insufficient output amount (price impact too high).");
-                            } else if data.to_string().contains("TRANSFER_FROM_FAILED") {
-                                error!("🔸 Reason: Token transfer failed (approval issue).");
-                            } else {
-                                error!("🔸 Reason: Unknown error. Raw data: {:?}", data);
-                            }
-                        }
-                        None => {
-                            error!("⚠️  Execution reverted without additional data.");
-                        }
-                    }
-                }
-            } else {
-                error!("❌ Simulation failed with a non-ProviderError.");
-            }
+            error!("❌ Failed to fetch price data from {}", dex);
             // Log the call data used for debugging
             info!("📞 Calling {} with data: {:?}", dex, hex::encode(call_data.clone()));
         }
