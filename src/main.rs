@@ -396,18 +396,33 @@ async fn simulate_arbitrage(
         } else if let Err(e) = result {
             error!("❌ Failed simulation on {}: {:?}", dex, e);
         
-            // Corrected error handling for ProviderError
-            if let Some(provider_error) = e.downcast_ref::<ethers::providers::ProviderError>() {
-                if let ethers::providers::ProviderError::JsonRpcClientError(ref json_rpc_error) = provider_error {
-                    if json_rpc_error.to_string().contains("execution reverted") {
-                        error!("🔸 Reason: Execution reverted. Possible causes include:");
-                        error!("  - Invalid token pair");
-                        error!("  - No liquidity for the pair");
-                        error!("  - Incorrect function data");
+           // Corrected error handling using direct pattern matching
+            if let ethers::providers::ProviderError::JsonRpcClientError(json_rpc_error) = &e {
+                if json_rpc_error.message.contains("execution reverted") {
+                    error!("🔸 Reason: Execution reverted. Possible causes include:");
+                    error!("  - Invalid token pair");
+                    error!("  - No liquidity for the pair");
+                    error!("  - Incorrect function data");
+
+                    match &json_rpc_error.data {
+                        Some(data) => {
+                            error!("⚠️  Additional data: {:?}", data);
+                            if data.to_string().contains("INSUFFICIENT_OUTPUT_AMOUNT") {
+                                error!("🔸 Reason: Insufficient output amount (price impact too high).");
+                            } else if data.to_string().contains("TRANSFER_FROM_FAILED") {
+                                error!("🔸 Reason: Token transfer failed (approval issue).");
+                            } else {
+                                error!("🔸 Reason: Unknown error. Raw data: {:?}", data);
+                            }
+                        }
+                        None => {
+                            error!("⚠️  Execution reverted without additional data.");
+                        }
                     }
                 }
+            } else {
+                error!("❌ Simulation failed with a non-ProviderError.");
             }
-            
             // Log the call data used for debugging
             info!("📞 Calling {} with data: {:?}", dex, hex::encode(call_data.clone()));
         }
