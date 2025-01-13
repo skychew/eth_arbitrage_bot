@@ -394,10 +394,11 @@ async fn simulate_arbitrage(
                 sell_price = Some(price);
             }
         } else {
-            error!("❌ Failed simulation on {}: {:?}", dex, result);
+            // Fix 1: Clone `call_data` to prevent move error
+            info!("📞 Calling {} with data: {:?}", dex, hex::encode(&call_data.clone()));
         
-            // Simplify error handling by checking the error message string
             if let Err(e) = result {
+                // Fix 2: Handle ProviderError properly
                 let error_msg = e.to_string();
         
                 if error_msg.contains("execution reverted") {
