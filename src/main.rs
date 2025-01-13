@@ -396,18 +396,17 @@ async fn simulate_arbitrage(
         } else {
             error!("❌ Failed simulation on {}: {:?}", dex, result);
         
-            // Directly match the ProviderError inside the Err variant
-            if let Err(ethers::providers::ProviderError::JsonRpcClientError(ref json_rpc_error)) = result {
-                if json_rpc_error.to_string().contains("execution reverted") {
+            // Simplify error handling by checking the error message string
+            if let Err(e) = result {
+                let error_msg = e.to_string();
+        
+                if error_msg.contains("execution reverted") {
                     error!("🔸 Reason: Execution reverted. Possible causes include:");
                     error!("  - Invalid token pair");
                     error!("  - No liquidity for the pair");
                     error!("  - Incorrect function data");
-        
-                    // Log additional error data if available
-                    if let Some(ref data) = json_rpc_error.data {
-                        error!("🔎 Additional Error Data: {:?}", data);
-                    }
+                } else {
+                    error!("🔎 Unhandled error: {}", error_msg);
                 }
             }
         }
