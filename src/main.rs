@@ -137,7 +137,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             Err(e) => {
                                 error!("❌ Simulation failed: {:?}", e);
                                  // Adjusted error handling with correct type
-                                 if let Some(json_rpc_error) = e.downcast_ref::<ethers::providers::JsonRpcError>() {
+                                 if let ethers::providers::ProviderError::JsonRpcClientError(json_rpc_error) = e {
                                     if json_rpc_error.message.contains("execution reverted") {
                                         match &json_rpc_error.data {
                                             Some(data) => {
@@ -395,7 +395,7 @@ async fn simulate_arbitrage(
             }
         } else if let Err(e) = result {
             error!("❌ Failed simulation on {}: {:?}", dex, e);
-            if let Some(json_rpc_error) = e.downcast_ref::<ethers::providers::JsonRpcError>() {
+            if let ethers::providers::ProviderError::JsonRpcClientError(json_rpc_error) = e {
                 if json_rpc_error.message.contains("execution reverted") {
                     error!("🔸 Reason: Execution reverted. Possible causes include:");
                     error!("  - Invalid token pair");
