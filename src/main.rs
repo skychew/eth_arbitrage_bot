@@ -393,26 +393,24 @@ async fn simulate_arbitrage(
             } else {
                 sell_price = Some(price);
             }
-        } else {
-            // Fix 1: Clone `call_data` to prevent move error
-            info!("📞 Calling {} with data: {:?}", dex, hex::encode(&call_data.clone()));
+        } else if let Err(e) = result {
+            error!("❌ Failed simulation on {}: {:?}", dex, e);
         
-            if let Err(e) = result {
-                // Fix 2: Handle ProviderError properly
-                let error_msg = e.to_string();
-        
-                if error_msg.contains("execution reverted") {
-                    error!("🔸 Reason: Execution reverted. Possible causes include:");
-                    error!("  - Invalid token pair");
-                    error!("  - No liquidity for the pair");
-                    error!("  - Incorrect function data");
-                } else {
-                    error!("🔎 Unhandled error: {}", error_msg);
+            // Corrected error handling for ProviderError
+            if let Some(provider_error) = e.downcast_ref::<ethers::providers::ProviderError>() {
+                if let ethers::providers::ProviderError::JsonRpcClientError(ref json_rpc_error) = provider_error {
+                    if json_rpc_error.to_string().contains("execution reverted") {
+                        error!("🔸 Reason: Execution reverted. Possible causes include:");
+                        error!("  - Invalid token pair");
+                        error!("  - No liquidity for the pair");
+                        error!("  - Incorrect function data");
+                    }
                 }
             }
+            
+            // Log the call data used for debugging
+            info!("📞 Calling {} with data: {:?}", dex, hex::encode(call_data.clone()));
         }
-
-        info!("📞 Calling {} with data: {:?}", dex, hex::encode(&call_data));
     }
 
     if let (Some(buy), Some(sell)) = (buy_price, sell_price) {
