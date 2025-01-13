@@ -366,7 +366,7 @@ async fn simulate_arbitrage(
             } else {
                 sell_price = Some(price);
             }
-        } else {
+        } else if let Err(e) = result  {
             error!("❌ Failed simulation on {}: {:?}", dex, e);
             error!("❌ Failed to fetch price data from {}", dex);
             // Log the call data used for debugging
