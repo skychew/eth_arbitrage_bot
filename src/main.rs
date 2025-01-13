@@ -1,3 +1,39 @@
+/*
+Understanding the Current Arbitrage Strategy
+
+The bot is designed to simulate arbitrage opportunities by monitoring pending Ethereum transactions and analyzing swaps on decentralized exchanges (DEXs) like Uniswap and SushiSwap.
+
+Step-by-Step Breakdown of the Strategy
+
+1.	Subscribe to Pending Transactions
+	•	The bot connects to the Ethereum mempool using a WebSocket provider (Infura) and listens for pending transactions.
+	•	Every pending transaction hash is fetched and examined.
+	2.	Filter Transactions by DEX Router Addresses
+	•	It checks if the transaction’s to address matches known DEX router addresses (e.g., Uniswap V2/V3 or SushiSwap routers).
+	•	If a transaction is sent to these routers, it’s likely a swap.
+	3.	Decode Swap Transactions
+	•	The bot decodes the transaction input data to extract:
+	•	Token In (token_in)
+	•	Token Out (token_out)
+	•	Amount In (amount_in)
+	•	Recipient (recipient)
+	•	It handles functions like:
+	•	exactInput
+	•	exactOutput
+	•	exactInputSingle
+	•	exactOutputSingle
+	4.	Simulate Arbitrage
+	•	For detected swaps, the bot tries to simulate a trade on multiple DEXs (Uniswap and SushiSwap) by calling the call method (which doesn’t execute transactions but simulates them).
+	•	It encodes the swap call to fetch the expected output price on each DEX.
+	•	It compares the simulated buy price and sell price across the DEXs.
+	5.	Profit Calculation
+	•	Profit is calculated as:
+
+\text{Profit} = (\text{Sell Price} - \text{Buy Price}) - \text{Gas Cost}
+
+	•	If the profit is positive, the bot logs that a profitable arbitrage opportunity exists.
+
+*/
 use ethers::prelude::*;
 use ethers::providers::{Provider, Ws, StreamExt};
 use ethers::utils::format_ether;
@@ -323,22 +359,29 @@ async fn simulate_arbitrage(
 
     // Fetch prices from each DEX
     for (dex, address) in dex_addresses.iter() {
-        let call_data = ethers::abi::encode(&[
-            ethers::abi::Token::Address(token_in),
-            ethers::abi::Token::Address(token_out),
-            ethers::abi::Token::Uint(amount_in),
-        ]);
+        let get_amounts_out_abi = AbiParser::default()
+            .parse(&["function getAmountsOut(uint256 amountIn, address[] memory path) external view returns (uint256[] memory)"])
+            .expect("Failed to parse ABI");
+
+        let call_data = get_amounts_out_abi
+            .function("getAmountsOut")
+            .unwrap()
+            .encode_input(&[
+                Token::Uint(amount_in),
+                Token::Array(vec![Token::Address(token_in), Token::Address(token_out)]),
+            ])
+            .expect("Failed to encode input");
 
         let result = provider
-        .call(
-            &ethers::types::TransactionRequest::default()
-                .to(*address)
-                .data(call_data.clone())
-                .gas(1_000_000u64)  // High gas limit for simulation
-                .into(), 
-            None  // Use latest block
-        )
-        .await;
+            .call(
+                &ethers::types::TransactionRequest::default()
+                    .to(*address)
+                    .data(call_data)
+                    .into(),
+                None
+            )
+            .await;
+
         info!("💾 Call result: {:?}", result);
 
         if let Ok(res_bytes) = result {
@@ -350,9 +393,19 @@ async fn simulate_arbitrage(
             } else {
                 sell_price = Some(price);
             }
-        } else {
-            error!("❌ Failed to fetch price data from {}", dex);
+        } else if let Err(e) = result {
+            error!("❌ Failed simulation on {}: {:?}", dex, e);
+            if let Some(json_rpc_error) = e.downcast_ref::<ethers::providers::JsonRpcError>() {
+                if json_rpc_error.message.contains("execution reverted") {
+                    error!("🔸 Reason: Execution reverted. Possible causes include:");
+                    error!("  - Invalid token pair");
+                    error!("  - No liquidity for the pair");
+                    error!("  - Incorrect function data");
+                }
+            }
         }
+
+        info!("📞 Calling {} with data: {:?}", dex, hex::encode(&call_data));
     }
 
     if let (Some(buy), Some(sell)) = (buy_price, sell_price) {
