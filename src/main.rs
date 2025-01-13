@@ -349,7 +349,7 @@ async fn simulate_arbitrage(
             .call(
                 &ethers::types::TransactionRequest::default()
                     .to(*address)
-                    .data(call_data)
+                    .data(call_data.clone())
                     .into(),
                 None
             )
