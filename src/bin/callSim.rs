@@ -38,7 +38,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .value(U256::zero());       // No ETH sent
 
     // Perform the call
-    let result = provider.call(&tx, None).await;
+   // let result = provider.call(&tx, None).await;
+   let result = provider.call(&tx.into(), None).await;
 
     // Log the result
     match result {
