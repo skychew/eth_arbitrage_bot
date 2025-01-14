@@ -1,11 +1,11 @@
 use ethers::prelude::*;
 use ethers::providers::{Provider, Ws};
 use ethers::types::{TransactionRequest, Address, U256};
-use std::convert::TryFrom;
+//use std::convert::TryFrom;
 use std::sync::Arc;
-use tokio::time::{sleep, Duration};
+//use tokio::time::{sleep, Duration};
 use dotenv::dotenv;
-use std::env;
+//use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -24,9 +24,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .parse()
         .expect("Invalid SushiSwap Router address");
 
-    // Sample call data from logs (verify if correct)
-    let call_data = hex::decode("d06ca61f0000000000000000000000000000000000000000000000000000000067853b5900000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000f82d4fdf85f9da750000000000000000000000000000000000000000000000000000000000000042")
-        .expect("Invalid call data");
+    let amount_in = U256::from_dec_str("1000000000000000000")?; // 1 WETH
+    let path = vec![
+        Token::Address("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".parse()?), // WETH
+        Token::Address("0xdac17f958d2ee523a2206206994597c13d831ec7".parse()?), // USDT
+    ];
+    
+    let call_data = ethers::abi::encode(&[
+        Token::Uint(amount_in),
+        Token::Array(path),
+    ]);
 
     println!("📞 Sending call to SushiSwap...");
 
