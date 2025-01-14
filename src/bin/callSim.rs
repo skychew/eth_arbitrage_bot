@@ -11,7 +11,7 @@ use std::env;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment variables
     dotenv().ok();
-    let infura_ws = env::var("INFURA_WS")?;
+    let infura_ws = std::env::var("INFURA_WS").expect("⚠️ INFURA_WS not set in .env");
     
     // Connect to Ethereum Node
     let provider = Provider::<Ws>::connect(&infura_ws).await?;
