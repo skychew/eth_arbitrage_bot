@@ -27,15 +27,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("Invalid SushiSwap Router address");
 
     let amount_in = U256::from_dec_str("1000000000000000000")?; // 1 WETH
+    
     let path = vec![
         Token::Address("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".parse()?), // WETH
         Token::Address("0xdac17f958d2ee523a2206206994597c13d831ec7".parse()?), // USDT
     ];
     
-    let call_data = ethers::abi::encode(&[
+    // Correct function selector for `getAmountsOut`
+    let function_selector = hex::decode("d06ca61f")?;
+    
+    // ABI-encode the parameters
+    let encoded_params = ethers::abi::encode(&[
         Token::Uint(amount_in),
         Token::Array(path),
     ]);
+        
+        // Combine selector and parameters
+        let mut call_data = function_selector.clone();
+        call_data.extend(encoded_params);
 
     println!("📞 Sending call to SushiSwap...");
 
