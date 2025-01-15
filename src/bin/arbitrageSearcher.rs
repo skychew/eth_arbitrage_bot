@@ -24,12 +24,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ].into_iter().collect();
 
     // Define function selectors for swap functions
-    let swap_selectors: HashSet<H256> = vec![
-        H256::from_slice(&hex::decode("414bf389")?), // exactInputSingle
-        H256::from_slice(&hex::decode("c04b8d59")?), // exactInput
-        H256::from_slice(&hex::decode("db3e2198")?), // exactOutputSingle
-        H256::from_slice(&hex::decode("f28c0498")?), // exactOutput
-    ].into_iter().collect();
+    let swap_selectors: HashSet<String> = HashSet::from([
+        "414bf389".to_string(), // exactInputSingle
+        "c04b8d59".to_string(),
+        "db3e2198".to_string(),
+        "f28c0498".to_string(), // exactOutput
+    ]);
 
     // Subscribe to pending transactions
     let mut pending_txs = provider.subscribe_pending_txs().await?;
@@ -45,10 +45,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if dex_routers.contains(&to_address) {
                     // Extract function selector (first 4 bytes of input data)
                     if let Some(input_data) = tx.input.get(0..4) {
-                        // Convert selector to hex string instead of H256
-                        let selector = hex::encode(input_data);
+                        let selector = H256::from_slice(input_data);  // Convert to H256
                     
-                        // Check if the function selector is a swap function
                         if swap_selectors.contains(&selector) {
                             println!("🟢 Swap Detected on DEX!");
                             println!("🔗 Tx Hash: {:?}", tx.hash);
