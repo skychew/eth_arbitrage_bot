@@ -38,7 +38,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Process transactions as they appear
     while let Some(tx_hash) = pending_txs.next().await {
-        if let Ok(tx) = provider.get_transaction(tx_hash).await? {
+       // Correct handling of Result<Option<Transaction>>
+        if let Ok(Some(tx)) = provider.get_transaction(tx_hash).await {
             // Check if the transaction is going to a known DEX router
             if let Some(to_address) = tx.to {
                 if dex_routers.contains(&to_address) {
