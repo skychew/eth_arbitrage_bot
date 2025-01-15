@@ -45,8 +45,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if dex_routers.contains(&to_address) {
                     // Extract function selector (first 4 bytes of input data)
                     if let Some(input_data) = tx.input.get(0..4) {
-                        let selector = H256::from_slice(input_data);
-
+                        // Convert selector to hex string instead of H256
+                        let selector = hex::encode(input_data);
+                    
                         // Check if the function selector is a swap function
                         if swap_selectors.contains(&selector) {
                             println!("🟢 Swap Detected on DEX!");
@@ -55,6 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             println!("🧩 Function Selector: {:?}", selector);
                             println!("💰 Value: {:?}", tx.value);
                         }
+                    }
                     }
                 }
             }
