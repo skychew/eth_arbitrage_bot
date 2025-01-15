@@ -45,7 +45,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if dex_routers.contains(&to_address) {
                     // Extract function selector (first 4 bytes of input data)
                     if let Some(input_data) = tx.input.get(0..4) {
-                        let selector = H256::from_slice(input_data);  // Convert to H256
+                        // Convert the first 4 bytes (function selector) to H256 for comparison
+                        let selector = H256::from_slice(&{
+                            let mut padded_selector = [0u8; 32];  // H256 requires 32 bytes
+                            padded_selector[..4].copy_from_slice(input_data);  // Pad the selector
+                            padded_selector
+                        });
                     
                         if swap_selectors.contains(&selector) {
                             println!("🟢 Swap Detected on DEX!");
