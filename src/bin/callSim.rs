@@ -1,3 +1,12 @@
+/*
+Working version
+✅ Connected to Ethereum Node...
+📞 Sending call to SushiSwap...
+💱 SushiSwap Price: 32
+📞 Sending call to Uniswap...
+💱 Uniswap Price: 32
+*/
+
 use ethers::prelude::*;
 use ethers::providers::{Provider, Ws};
 use ethers::types::{TransactionRequest, Address, U256};
