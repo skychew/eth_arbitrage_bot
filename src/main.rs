@@ -302,6 +302,10 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                 error!("❌ Failed to decode exactOutputSingle");
             }
         }
+        "ac9650d8" => {
+            info!("🛠️ Ignoring: multicall");
+            return None;
+        }
 
         // New handlers for swap functions
         "38ed1739" => {  // swapExactTokensForTokens
@@ -518,4 +522,37 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
 
     debug!("Failed to fetch transaction after {} attempts", max_retries);
     None
+}
+
+// 🔍 Fetch DEX Prices
+async fn fetch_price(
+    provider: &Arc<Provider<Ws>>,
+    router: Address,
+    call_data: Vec<u8>,
+    dex_name: &str,
+) -> Option<U256> {
+    println!("📞 Fetching price from {}...", dex_name);
+
+    let tx = TransactionRequest::new()
+        .to(router)
+        .data(call_data)
+        .gas(U256::from(1_000_000))
+        .value(U256::zero());
+
+    match provider.call(&tx.into(), None).await {
+        Ok(res) => {
+            if res.len() >= 32 {
+                let price = U256::from_big_endian(&res[0..32]);
+                println!("💱 {} Price: {}", dex_name, price);
+                Some(price)
+            } else {
+                println!("❌ {} response too short: {:?}", dex_name, res);
+                None
+            }
+        }
+        Err(e) => {
+            println!("❌ {} call failed: {:?}", dex_name, e);
+            None
+        }
+    }
 }
