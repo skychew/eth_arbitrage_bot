@@ -210,7 +210,7 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                             "❌ Unexpected number of parameters for exactOutput: expected 5, got {}",
                             decoded.len()
                         );
-                    }
+                    }   
                 }Err(e) => {
                     error!("❌ Failed to decode exactOutput: {:?}", e);
                 }
@@ -300,6 +300,65 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                 }
             } else {
                 error!("❌ Failed to decode exactOutputSingle");
+            }
+        }
+
+        // New handlers for swap functions
+        "38ed1739" => {  // swapExactTokensForTokens
+            info!("🛠️ Decoding: swapExactTokensForTokens");
+            if let Ok(decoded) = abi.function("swapExactTokensForTokens").and_then(|func| func.decode_input(&input[4..])) {
+                if decoded.len() == 5 {
+                    if let (
+                        Token::Uint(amount_in),
+                        Token::Uint(_amount_out_min),
+                        Token::Array(path),
+                        Token::Address(recipient),
+                        Token::Uint(_deadline)
+                    ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4]) {
+                        let token_in = path[0].clone().into_address().unwrap();
+                        let token_out = path[path.len() - 1].clone().into_address().unwrap();
+                        return Some((token_in, token_out, *amount_in, *recipient));
+                    }
+                }
+            }
+        }
+
+        "18cbafe5" => {  // swapExactETHForTokens
+            info!("🛠️ Decoding: swapExactETHForTokens");
+            if let Ok(decoded) = abi.function("swapExactETHForTokens").and_then(|func| func.decode_input(&input[4..])) {
+                if decoded.len() == 4 {
+                    if let (
+                        Token::Uint(_amount_out_min),
+                        Token::Array(path),
+                        Token::Address(recipient),
+                        Token::Uint(_deadline)
+                    ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3]) {
+                        let token_in = Address::zero(); // ETH
+                        let token_out = path[path.len() - 1].clone().into_address().unwrap();
+                        let amount_in = U256::from(0);  // Dynamic
+                        return Some((token_in, token_out, amount_in, *recipient));
+                    }
+                }
+            }
+        }
+
+        "e8e33700" => {  // addLiquidity
+            info!("🛠️ Decoding: addLiquidity");
+            if let Ok(decoded) = abi.function("addLiquidity").and_then(|func| func.decode_input(&input[4..])) {
+                if decoded.len() == 8 {
+                    if let (
+                        Token::Address(token_a),
+                        Token::Address(token_b),
+                        Token::Uint(amount_a),
+                        Token::Uint(amount_b),
+                        Token::Uint(_amount_a_min),
+                        Token::Uint(_amount_b_min),
+                        Token::Address(recipient),
+                        Token::Uint(_deadline)
+                    ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4], &decoded[5], &decoded[6], &decoded[7]) {
+                        return Some((*token_a, *token_b, *amount_a + *amount_b, *recipient));
+                    }
+                }
             }
         }
 
