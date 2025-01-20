@@ -46,6 +46,7 @@ use std::fs::OpenOptions;
 use env_logger::{Builder, Target};
 use ethers::abi::{AbiParser, Abi, Token};
 use ethers::types::{Bytes, U256};
+use std::collections::HashMap;
 
 //use retry::{retry_async, delay::Exponential};
 //use retry::OperationResult;
@@ -137,8 +138,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         info!("💰 Amount In: {:?}", amount_in);
                         info!("👤 Recipient: {:?}", recipient);
 
+                        /// Fetch prices from DEXs
+
+                        // Router Addresses
+                        let sushi_router: Address = "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F".parse()?;
+                        let uniswap_router: Address = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D".parse()?;
+
+                        // Define token pair: WETH -> USDT
+                        //let amount_in = U256::from_dec_str("1000000000000000000")?; 
+                        let path = vec![
+                            Token::Address(token_in.parse()?), 
+                            Token::Address(token_out.parse()?),
+                        ];
+
+                        // Function selector for getAmountsOut
+                        let function_selector = hex::decode("d06ca61f")?;
+                        let encoded_params = ethers::abi::encode(&[
+                            Token::Uint(amount_in),
+                            Token::Array(path.clone()),
+                        ]);
+
+                        // SushiSwap call data
+                        let mut sushi_call_data = function_selector.clone();
+                        sushi_call_data.extend(encoded_params.clone());
+
+                        // Uniswap call data
+                        let mut uniswap_call_data = function_selector.clone();
+                        uniswap_call_data.extend(encoded_params);
+
+                        // === SushiSwap Call ===
+                        let sushi_price = fetch_price(&provider, sushi_router, sushi_call_data, "SushiSwap").await;
+
+                        // === Uniswap Call ===
+                        let uniswap_price = fetch_price(&provider, uniswap_router, uniswap_call_data, "Uniswap").await;
+
                         // Call simulate_arbitrage
-                        match simulate_arbitrage(token_in, token_out, amount_in, Arc::clone(&provider)).await {
+                        match  simulate_arbitrage(sushi_price, uniswap_price, amount_in， Arc::clone(&provider)).await {
                             Ok(_) => {  info!("✅ Simulation Successful");/* Simulation successful */ }
                             Err(e) => {
                                 error!("❌ Simulation failed: {:?}", e);
@@ -173,9 +208,10 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
 
     // Extract function selector
     let selector = hex::encode(&input[0..4]);
-    //This will print the raw input data of the transaction, which you can manually decode to verify if it matches the expected structure.
+    //This will print the raw input data of the transaction, which you can manually decode later
+    info!("Start Decode");
     info!("🔑 Raw Input Data: {:?}", hex::encode(&input));
-    info!("🧩 Function Selector: 0x{}", selector);
+    info!("🧩 Raw Function Selector: 0x{}", selector);
 
     // Match the selector against known function signatures
     match selector.as_str() {
@@ -376,95 +412,39 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
     None
 }
 
-/// Simulate arbitrage opportunity based on detected DEX transaction
-use std::collections::HashMap;
+/// 💰 Simulate arbitrage opportunity based on detected DEX transaction
+fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, amount_in: U256) -> Result<(), Box<dyn std::error::Error>> {
+    let gas_fee_eth = U256::from(1_000_000_000_000_000u64); // Example gas fee in wei (0.001 ETH)
 
-async fn simulate_arbitrage(
-    token_in: Address,
-    token_out: Address,
-    amount_in: U256,
-    provider: Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    info!("🔄 Starting Arbitrage Simulation...");
-    info!("🪙 Token In: {:?}", token_in);
-    info!("🪙 Token Out: {:?}", token_out);
-    info!("💰 Amount In: {:?}", amount_in);
-
-    // Example DEX router addresses for price fetching
-    let dex_addresses: HashMap<&str, Address> = HashMap::from([
-        ("UniswapV2", "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse().unwrap()),
-        ("SushiSwap", "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse().unwrap()),
-    ]);
-
-    let mut buy_price: Option<U256> = None;
-    let mut sell_price: Option<U256> = None;
-
-    // Fetch prices from each DEX
-    for (dex, address) in dex_addresses.iter() {
-        let get_amounts_out_abi = AbiParser::default()
-            .parse(&["function getAmountsOut(uint256 amountIn, address[] memory path) external view returns (uint256[] memory)"])
-            .expect("Failed to parse ABI");
-
-        let call_data = get_amounts_out_abi
-            .function("getAmountsOut")
-            .unwrap()
-            .encode_input(&[
-                Token::Uint(amount_in),
-                Token::Array(vec![Token::Address(token_in), Token::Address(token_out)]),
-            ])
-            .expect("Failed to encode input");
-
-        let result = provider
-            .call(
-                &ethers::types::TransactionRequest::default()
-                    .to(*address)
-                    .data(call_data.clone())
-                    .into(),
-                None
-            )
-            .await;
-
-        info!("💾 Call result: {:?}", result);
-
-        if let Ok(res_bytes) = result {
-            if res_bytes.len() >= 32 {
-                let price = U256::from_big_endian(&res_bytes[0..32]);
-                info!("💱 {} Price: {}", dex, price);
-            
-                if buy_price.is_none() {
-                    buy_price = Some(price);
-                } else {
-                    sell_price = Some(price);
-                }
-
+    if let (Some(sushi), Some(uni)) = (sushi_price, uniswap_price) {
+        println!("Starting Simulate Arbitrage...");
+        if sushi > uni {
+            let profit = sushi.checked_sub(uni).unwrap_or_default().checked_sub(gas_fee_eth).unwrap_or_default();
+            if profit > U256::zero() {
+                println!("🚀 Arbitrage Opportunity Detected!");
+                println!("🔹 Buy on Uniswap: {}", uni);
+                println!("🔸 Sell on SushiSwap: {}", sushi);
+                println!("💵 Profit (after gas): {}", profit);
             } else {
-                error!("❌ Response from {} is too short: {:?}", dex, res_bytes);
-            }        
-        } else if let Err(e) = result  {
-            error!("❌ Failed simulation on {}: {:?}", dex, e);
-            error!("❌ Failed to fetch price data from {}", dex);
-            // Log the call data used for debugging
-            info!("📞 Calling {} with data: {:?}", dex, hex::encode(call_data.clone()));
-        }
-    }
-
-    if let (Some(buy), Some(sell)) = (buy_price, sell_price) {
-        let gas_cost = U256::from(1_000_000_000_000_000u64); // Example gas fee
-
-        let profit = sell.checked_sub(buy).unwrap_or_default().checked_sub(gas_cost).unwrap_or_default();
-
-        if profit > U256::from(0) {
-            info!("💰 Arbitrage Opportunity Detected!");
-            info!("🔹 Buy Price: {}", buy);
-            info!("🔸 Sell Price: {}", sell);
-            info!("⛽ Gas Cost: {}", gas_cost);
-            info!("💵 Profit: {}", profit);
+                println!("❌ No profitable arbitrage (after gas).");
+            }
+        } else if uni > sushi {
+            let profit = uni.checked_sub(sushi).unwrap_or_default().checked_sub(gas_fee_eth).unwrap_or_default();
+            if profit > U256::zero() {
+                println!("🚀 Arbitrage Opportunity Detected!");
+                println!("🔹 Buy on SushiSwap: {}", sushi);
+                println!("🔸 Sell on Uniswap: {}", uni);
+                println!("💵 Profit (after gas): {}", profit);
+            } else {
+                println!("❌ No profitable arbitrage (after gas).");
+            }
         } else {
-            info!("❌ No profitable arbitrage found.");
+            println!("⚖️ Prices are equal. No arbitrage.");
         }
     } else {
-        warn!("❌ Failed to fetch prices from DEXs.");
+        println!("❌ Failed to fetch prices from one or both DEXs.");
     }
+
     Ok(())
 }
 /* ======== Fetch Full Transaction Details
@@ -528,6 +508,7 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
 async fn fetch_price(
     provider: &Arc<Provider<Ws>>,
     router: Address,
+
     call_data: Vec<u8>,
     dex_name: &str,
 ) -> Option<U256> {
