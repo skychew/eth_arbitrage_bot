@@ -172,13 +172,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         // === Uniswap Call ===
                         let uniswap_price = fetch_price(&provider, uniswap_router, uniswap_call_data, "Uniswap").await;
 
-                        // Call simulate_arbitrage
-                        match  simulate_arbitrage(sushi_price, uniswap_price, amount_in， Arc::clone(&provider)).await {
-                            Ok(_) => {  info!("✅ Simulation Successful");/* Simulation successful */ }
-                            Err(e) => {
-                                error!("❌ Simulation failed: {:?}", e);
-                            }
-                        }
+                        // === Simulate Arbitrage ===
+                        simulate_arbitrage(sushi_price, uniswap_price, amount_in)?;
                     }
                 }
             }
