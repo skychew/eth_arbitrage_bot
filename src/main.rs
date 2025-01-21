@@ -147,8 +147,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         // Define token pair: WETH -> USDT
                         //let amount_in = U256::from_dec_str("1000000000000000000")?; 
                         let path = vec![
-                            Token::Address(token_in.parse()?), 
-                            Token::Address(token_out.parse()?),
+                            Token::Address(token_in), 
+                            Token::Address(token_out),
                         ];
 
                         // Function selector for getAmountsOut
