@@ -101,6 +101,7 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
                 println!("🔹 Buy on Uniswap: {}", uni);
                 println!("🔸 Sell on SushiSwap: {}", sushi);
                 println!("💵 Profit (after gas): {}", profit);
+                println!("💵 Amount in: {}", amount_in);
             } else {
                 println!("❌ No profitable arbitrage (after gas).");
             }
@@ -111,6 +112,7 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
                 println!("🔹 Buy on SushiSwap: {}", sushi);
                 println!("🔸 Sell on Uniswap: {}", uni);
                 println!("💵 Profit (after gas): {}", profit);
+                println!("💵 Amount in: {}", amount_in);
             } else {
                 println!("❌ No profitable arbitrage (after gas).");
             }
