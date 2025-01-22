@@ -410,32 +410,33 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
     let gas_fee_eth = U256::from(1_000_000_000_000_000u64); // Example gas fee in wei (0.001 ETH)
 
     if let (Some(sushi), Some(uni)) = (sushi_price, uniswap_price) {
-        println!("Starting Simulate Arbitrage...");
+        info!("Starting Simulate Arbitrage...");
         if sushi > uni {
             let profit = sushi.checked_sub(uni).unwrap_or_default().checked_sub(gas_fee_eth).unwrap_or_default();
             if profit > U256::zero() {
-                println!("🚀 Arbitrage Opportunity Detected!");
-                println!("🔹 Buy on Uniswap: {}", uni);
-                println!("🔸 Sell on SushiSwap: {}", sushi);
-                println!("💵 Profit (after gas): {}", profit);
+                info!("🚀 Arbitrage Opportunity Detected!");
+                info!("🔹 Buy on Uniswap: {}", uni);
+                info!("🔸 Sell on SushiSwap: {}", sushi);
+                info!("💵 Profit (after gas): {}", profit);
             } else {
                 println!("❌ No profitable arbitrage (after gas).");
             }
         } else if uni > sushi {
             let profit = uni.checked_sub(sushi).unwrap_or_default().checked_sub(gas_fee_eth).unwrap_or_default();
             if profit > U256::zero() {
-                println!("🚀 Arbitrage Opportunity Detected!");
-                println!("🔹 Buy on SushiSwap: {}", sushi);
-                println!("🔸 Sell on Uniswap: {}", uni);
-                println!("💵 Profit (after gas): {}", profit);
+                info!("🚀 Arbitrage Opportunity Detected!");
+                info!("🔹 Buy on SushiSwap: {}", sushi);
+                info!("🔸 Sell on Uniswap: {}", uni);
+                info!("💵 Profit (after gas): {}", profit);
+                info!("💵 Amount in: {}", amount_in);
             } else {
-                println!("❌ No profitable arbitrage (after gas).");
+                info!("❌ No profitable arbitrage (after gas).");
             }
         } else {
-            println!("⚖️ Prices are equal. No arbitrage.");
+            info!("⚖️ Prices are equal. No arbitrage.");
         }
     } else {
-        println!("❌ Failed to fetch prices from one or both DEXs.");
+        info!("❌ Failed to fetch prices from one or both DEXs.");
     }
 
     Ok(())
@@ -517,15 +518,15 @@ async fn fetch_price(
         Ok(res) => {
             if res.len() >= 32 {
                 let price = U256::from_big_endian(&res[0..32]);
-                println!("💱 {} Price: {}", dex_name, price);
+                info!("💱 {} Price: {}", dex_name, price);
                 Some(price)
             } else {
-                println!("❌ {} response too short: {:?}", dex_name, res);
+                warn!("❌ {} response too short: {:?}", dex_name, res);
                 None
             }
         }
         Err(e) => {
-            println!("❌ {} call failed: {:?}", dex_name, e);
+            error!("❌ {} call failed: {:?}", dex_name, e);
             None
         }
     }
