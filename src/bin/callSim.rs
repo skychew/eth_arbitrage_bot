@@ -25,7 +25,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let amount_in = U256::from_dec_str("1000000000000000000")?; // 1 WETH
     let path = vec![
         Token::Address("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".parse()?), // WETH
-        Token::Address("0xdac17f958d2ee523a2206206994597c13d831ec7".parse()?), // USDT
+        //Token::Address("0xdac17f958d2ee523a2206206994597c13d831ec7".parse()?), // USDT
+        Token::Address("0xbbbb2d4d765c1e455e4896a64ba3883e914abbbb".parse()?),
     ];
 
     // Function selector for getAmountsOut
