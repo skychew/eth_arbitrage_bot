@@ -12,8 +12,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let infura_ws = std::env::var("ETH_WS_URL").expect("⚠️ ETH_WS_URL not set in .env");
 
     // Connect to Ethereum Node
-    let provider = Provider::<Ws>::connect(&infura_ws).await?;
-    let provider = Arc::new(provider);
+    let provider = Arc::new(Arc::new(Provider::<Ws>::connect(&infura_ws).await?));
+
+// Contract instances
+let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
+let contract_in = Contract::new(token_in, erc20_abi.clone(), provider.clone());
 
     println!("✅ Connected to Ethereum Node...");
 
@@ -36,8 +39,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ])?;
 
     let token_out: Address = path.last().unwrap().into_address().unwrap(); // Ensure last token in the path
-    let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
+    let token_in: Address = path.first().unwrap().into_address().unwrap(); // Ensure last token in the path
     
+    // Contract instances
+    let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
+    let contract_in = Contract::new(token_in, erc20_abi.clone(), provider.clone());
+
     // Check if `token_out` is a valid ERC-20 token
     match check_erc20(&contract_out).await {
         Ok((name, symbol, decimals)) => {
@@ -52,8 +59,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let token_in: Address = path.first().unwrap().into_address().unwrap(); // Ensure last token in the path
-    let contract_in = Contract::new(token_in, erc20_abi.clone(), provider.clone());
+  
+  
     
     // Check if `token_out` is a valid ERC-20 token
     match check_erc20(&contract_in).await {
@@ -172,7 +179,7 @@ async fn check_erc20<P>(
     contract: &Contract<Arc<Provider<P>>>,
 ) -> Result<(String, String, u8), Box<dyn std::error::Error>>
 where
-    P: ethers::providers::JsonRpcClient,
+    P: ethers::providers::JsonRpcClient + 'static,
 {
     // Query `name`
     let name: String = contract.method::<(), String>("name", ())?.call().await?;
