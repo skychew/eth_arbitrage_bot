@@ -167,17 +167,21 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
     Ok(())
 }
 
-/// check if token is ERC-20
-async fn check_erc20(
-    contract: &Contract<Provider<Http>>,) -> Result<(String, String, u8), Box<dyn std::error::Error>> {
+/// Check if token is ERC-20
+async fn check_erc20<P>(
+    contract: &Contract<Arc<Provider<P>>>,
+) -> Result<(String, String, u8), Box<dyn std::error::Error>>
+where
+    P: ethers::providers::JsonRpcClient,
+{
     // Query `name`
-    let name: String = contract.method("name", ())?.call().await?;
+    let name: String = contract.method::<(), String>("name", ())?.call().await?;
 
     // Query `symbol`
-    let symbol: String = contract.method("symbol", ())?.call().await?;
+    let symbol: String = contract.method::<(), String>("symbol", ())?.call().await?;
 
     // Query `decimals`
-    let decimals: u8 = contract.method("decimals", ())?.call().await?;
+    let decimals: u8 = contract.method::<(), u8>("decimals", ())?.call().await?;
 
     Ok((name, symbol, decimals))
 }
