@@ -153,59 +153,68 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     // Decode transaction input
                     if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
-
-                        // Check if `token_in` and `token_out` in list
-                        if !allowed_tokens.contains(&token_in) || !allowed_tokens.contains(&token_out) {
-                            warn!("Token In: {:?}", token_in);
-                            warn!("Token Out: {:?}", token_out);
-                            warn!("Unlisted Token, skipping...");
-                            continue;
+                        // Check if token is listed
+                        if !allowed_tokens.contains(&token_in) {
+                            warn!("❌ Token In is not listed: {:?}", token_in);
+                        }else{
+                            info!("TokenInListed: {:?}", token_in);
                         }
-
-                        info!("🔄 Starting Arbitrage Simulation...");
-                        info!("🪙 Token In: {:?}", token_in);
-                        info!("🪙 Token Out: {:?}", token_out);
-                        info!("💰 Amount In: {:?}", amount_in);
-                        info!("👤 Recipient: {:?}", recipient);
                         
-                        // Create a contract instance
-                        let contract_in = Contract::new(token_in, erc20_abi.clone(), provider.clone());
-                        let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
+                        if !allowed_tokens.contains(&token_out) {
+                            warn!("❌ Token Out is not listed: {:?}", token_out);
+                        }else{
+                            info!("TokenOutListed: {:?}", token_out);
+                        }
+                    
+                        if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
+                            info!("✅ Listed Tokens. Starting Arbitrage Sim!");
+                            info!("🪙 Token In: {:?}", token_in);
+                            info!("🪙 Token Out: {:?}", token_out);
+                            info!("💰 Amount In: {:?}", amount_in);
+                            info!("👤 Recipient: {:?}", recipient);
+                            
+                            // Create a contract instance
+                            let contract_in = Contract::new(token_in, erc20_abi.clone(), provider.clone());
+                            let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
 
-                        // Router Addresses
-                        let sushi_router: Address = "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F".parse()?;
-                        let uniswap_router: Address = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D".parse()?;
+                            // Router Addresses
+                            let sushi_router: Address = "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F".parse()?;
+                            let uniswap_router: Address = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D".parse()?;
 
-                        // Define token pair: WETH -> USDT
-                        let amount_in = U256::from_dec_str("1000000000000000000")?; //replace with hardcoded value to check price
-                        let path = vec![
-                            Token::Address(token_in), 
-                            Token::Address(token_out),
-                        ];
+                            // Define token pair: WETH -> USDT
+                            let amount_in = U256::from_dec_str("1000000000000000000")?; //replace with hardcoded value to check price
+                            let path = vec![
+                                Token::Address(token_in), 
+                                Token::Address(token_out),
+                            ];
 
-                        // Function selector for getAmountsOut
-                        let function_selector = hex::decode("d06ca61f")?;
-                        let encoded_params = ethers::abi::encode(&[
-                            Token::Uint(amount_in),
-                            Token::Array(path.clone()),
-                        ]);
+                            // Function selector for getAmountsOut
+                            let function_selector = hex::decode("d06ca61f")?;
+                            let encoded_params = ethers::abi::encode(&[
+                                Token::Uint(amount_in),
+                                Token::Array(path.clone()),
+                            ]);
 
-                        // SushiSwap call data
-                        let mut sushi_call_data = function_selector.clone();
-                        sushi_call_data.extend(encoded_params.clone());
+                            // SushiSwap call data
+                            let mut sushi_call_data = function_selector.clone();
+                            sushi_call_data.extend(encoded_params.clone());
 
-                        // Uniswap call data
-                        let mut uniswap_call_data = function_selector.clone();
-                        uniswap_call_data.extend(encoded_params);
+                            // Uniswap call data
+                            let mut uniswap_call_data = function_selector.clone();
+                            uniswap_call_data.extend(encoded_params);
 
-                        // === SushiSwap Call ===
-                        let sushi_price = fetch_price(&provider, sushi_router, sushi_call_data, "SushiSwap").await;
+                            // === SushiSwap Call ===
+                            let sushi_price = fetch_price(&provider, sushi_router, sushi_call_data, "SushiSwap").await;
 
-                        // === Uniswap Call ===
-                        let uniswap_price = fetch_price(&provider, uniswap_router, uniswap_call_data, "Uniswap").await;
+                            // === Uniswap Call ===
+                            let uniswap_price = fetch_price(&provider, uniswap_router, uniswap_call_data, "Uniswap").await;
 
-                        // === Simulate Arbitrage ===
-                        simulate_arbitrage(sushi_price, uniswap_price, amount_in)?;
+                            // === Simulate Arbitrage ===
+                            simulate_arbitrage(sushi_price, uniswap_price, amount_in)?;
+                        }else {
+                            println!("❌ Skipping...");
+                            return Ok(()); // Skip further processing
+                        }
                     }
                 }
             }
