@@ -3,7 +3,7 @@ use ethers::providers::{Provider, Ws};
 use ethers::types::{TransactionRequest, Address, U256};
 use std::sync::Arc;
 use dotenv::dotenv;
-use ethers::abi::{Abi, Token};
+use ethers::abi::{AbiParser,Abi, Token};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
