@@ -1,3 +1,5 @@
+static ERC20_ABI: &[u8] = include_bytes!("../abi/erc20abi.json");
+
 use ethers::prelude::*;
 use ethers::providers::{Provider, Ws};
 use ethers::types::{TransactionRequest, Address, U256};
@@ -6,8 +8,8 @@ use dotenv::dotenv;
 use ethers::abi::{AbiParser,Abi,Token};
 use std::io::Cursor;
 
-let erc20_abi = include_bytes!("../abi/erc20abi.json");
-let erc20_abi = Abi::load(Cursor::new(erc20_abi))?;
+// Load the ABI from the embedded bytes
+let erc20_abi = Abi::load(Cursor::new(ERC20_ABI))?;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
