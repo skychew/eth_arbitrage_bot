@@ -94,6 +94,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         ])
         .expect("Failed to parse ABI");
+    
+    // Define the list of allowed token addresses
+    let allowed_tokens: HashSet<Address> = HashSet::from([
+        "0x2eaa73bd0db20c64f53febea7b5f5e5bccc7fb8b".parse().unwrap(), // ETH
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".parse().unwrap(), // WETH
+        "0x514910771AF9Ca656af840dff83E8264EcF986CA".parse().unwrap(), // LINK
+        "0x163f8C2467924be0ae7B5347228CABF260318753".parse().unwrap(), // WLD
+        "0xfAbA6f8e4a5E8Ab82F62fe7C39859FA577269BE3".parse().unwrap(), // ONDO
+        "0x57e114B691Db790C35207b2e685D4A43181e6061".parse().unwrap(), // ENA
+        "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE".parse().unwrap(), // SHIB
+        "0x6982508145454Ce325dDbE47a25d4ec3d2311933".parse().unwrap(), // PEPE
+        "0x4C1746A800D224393fE2470C70A35717eD4eA5F1".parse().unwrap(), // PLUME
+        "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C".parse().unwrap(), // SPX
+        "0xaaeE1A9723aaDB7afA2810263653A34bA2C21C7a".parse().unwrap(), // MOG
+        "0xA2cd3D43c775978A96BdBf12d733D5A1ED94fb18".parse().unwrap(), // XCN
+        "0xdac17f958d2ee523a2206206994597c13d831ec7".parse().unwrap(), // USDT
+        "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2".parse().unwrap(), // SUSHI
+        "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599".parse().unwrap(), // WBTC
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48".parse().unwrap(), // USDC
+        "0x6b175474e89094c44da98b954eedeac495271d0f".parse().unwrap(), // DAI
+    ]);
 
     /* ======== Subscribe to pending transactions
 	•	What It Does: This connects to the Ethereum mempool and listens for all pending transactions (those broadcast but not yet mined into a block).
@@ -107,7 +128,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "0xe592427a0aece92de3edee1f18e0157c05861564".parse()?, // Uniswap V3 Router
         "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse()?, // SushiSwap Router
     ];
-
+        
     while let Some(tx_hash) = stream.next().await {
         debug!("==== Rcvd Pending Transaction: {:?}", tx_hash);
         /* ========
@@ -124,7 +145,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash, rate_limiter.clone()).await {
             if let Some(to) = transaction.to {
                 if dex_addresses.contains(&to) {
-                    info!("++ DEX Transaction Detected!: {:?}", tx_hash);
+                    info!("++++ DEX Transaction Detected!: {:?}", tx_hash);
                     info!("From: {:?}", transaction.from);
                     info!("To: {:?}", transaction.to);
                     info!("Gas Price: {:?}", transaction.gas_price.map(|g| format_ether(g)));
@@ -132,46 +153,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     // Decode transaction input
                     if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
+
+                        // Check if `token_in` and `token_out` in list
+                        if !allowed_tokens.contains(&token_in) || !allowed_tokens.contains(&token_out) {
+                            warn!("Token In: {:?}", token_in);
+                            warn!("Token Out: {:?}", token_out);
+                            warn!("Unlisted Token, skipping...");
+                            continue;
+                        }
+
                         info!("🔄 Starting Arbitrage Simulation...");
                         info!("🪙 Token In: {:?}", token_in);
                         info!("🪙 Token Out: {:?}", token_out);
                         info!("💰 Amount In: {:?}", amount_in);
                         info!("👤 Recipient: {:?}", recipient);
                         
-                        // Create a contract instance for token_in
+                        // Create a contract instance
                         let contract_in = Contract::new(token_in, erc20_abi.clone(), provider.clone());
-                                            
-                        // Check if `token_in` is a valid ERC-20 token
-                        match check_erc20(&contract_in).await {
-                            Ok((name, symbol, decimals)) => {
-                                info!("Valid ERC-20 Token In: {} ({}) with {} decimals", name, symbol, decimals);
-                            }
-                            Err(_) => {
-                                warn!("Token In:Invalid or Non-ERC-20 Token Detected: {:?}", token_in);
-                                continue; // Skip further processing and move to the next transaction
-                            }
-                        }
-
-                        // Create a contract instance for token_out
                         let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
-
-                        // Check if `token_out` is a valid ERC-20 token
-                        match check_erc20(&contract_out).await {
-                            Ok((name, symbol, decimals)) => {
-                                info!("Valid ERC-20 Token Out: {} ({}) with {} decimals", name, symbol, decimals);
-                            }
-                            Err(_) => {
-                                warn!("Token Out:Invalid or Non-ERC-20 Token Detected: {:?}", token_out);
-                                continue; // Skip further processing and move to the next transaction
-                            }
-                        }
 
                         // Router Addresses
                         let sushi_router: Address = "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F".parse()?;
                         let uniswap_router: Address = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D".parse()?;
 
                         // Define token pair: WETH -> USDT
-                        //let amount_in = U256::from_dec_str("1000000000000000000")?; 
+                        let amount_in = U256::from_dec_str("1000000000000000000")?; //replace with hardcoded value to check price
                         let path = vec![
                             Token::Address(token_in), 
                             Token::Address(token_out),

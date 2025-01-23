@@ -15,6 +15,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let infura_ws = std::env::var("ETH_WS_URL").expect("⚠️ ETH_WS_URL not set in .env");
     // Load the ABI from the embedded bytes
     let erc20_abi = Abi::load(Cursor::new(ERC20_ABI))?;
+     // Define the list of allowed token addresses
+     let allowed_tokens: HashSet<Address> = HashSet::from([
+        "0x2eaa73bd0db20c64f53febea7b5f5e5bccc7fb8b".parse().unwrap(), // ETH
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".parse().unwrap(), // WETH
+        "0x514910771AF9Ca656af840dff83E8264EcF986CA".parse().unwrap(), // LINK
+        "0x163f8C2467924be0ae7B5347228CABF260318753".parse().unwrap(), // WLD
+        "0xfAbA6f8e4a5E8Ab82F62fe7C39859FA577269BE3".parse().unwrap(), // ONDO
+        "0x57e114B691Db790C35207b2e685D4A43181e6061".parse().unwrap(), // ENA
+        "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE".parse().unwrap(), // SHIB
+        "0x6982508145454Ce325dDbE47a25d4ec3d2311933".parse().unwrap(), // PEPE
+        "0x4C1746A800D224393fE2470C70A35717eD4eA5F1".parse().unwrap(), // PLUME
+        "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C".parse().unwrap(), // SPX
+        "0xaaeE1A9723aaDB7afA2810263653A34bA2C21C7a".parse().unwrap(), // MOG
+        "0xA2cd3D43c775978A96BdBf12d733D5A1ED94fb18".parse().unwrap(), // XCN
+        "0xdac17f958d2ee523a2206206994597c13d831ec7".parse().unwrap(), // USDT
+        "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2".parse().unwrap(), // SUSHI
+        "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599".parse().unwrap(), // WBTC
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48".parse().unwrap(), // USDC
+        "0x6b175474e89094c44da98b954eedeac495271d0f".parse().unwrap(), // DAI
+    ]);
 
     // Connect to Ethereum Node
     let provider = Arc::new(Arc::new(Provider::<Ws>::connect(&infura_ws).await?));
@@ -33,6 +53,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Token::Address("0xbbbb2d4d765c1e455e4896a64ba3883e914abbbb".parse()?),
     ];
     
+    // Check if `token_in` and `token_out` in list
+    if !allowed_tokens.contains(&token_in) || !allowed_tokens.contains(&token_out) {
+        warn!("Token In: {:?}", token_in);
+        warn!("Token Out: {:?}", token_out);
+        warn!("Unlisted Token, skipping...");
+        continue;
+    }
+
     let token_out: Address = path.last().unwrap().clone().into_address().unwrap();
     let token_in: Address = path.first().unwrap().clone().into_address().unwrap();
 
