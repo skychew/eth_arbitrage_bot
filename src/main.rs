@@ -571,18 +571,3 @@ async fn fetch_price(
         }
     }
 }
-
-/// check if token is ERC-20
-async fn check_erc20(
-    contract: &Contract<Provider<Http>>,) -> Result<(String, String, u8), Box<dyn std::error::Error>> {
-    // Query `name`
-    let name: String = contract.method("name", ())?.call().await?;
-
-    // Query `symbol`
-    let symbol: String = contract.method("symbol", ())?.call().await?;
-
-    // Query `decimals`
-    let decimals: u8 = contract.method("decimals", ())?.call().await?;
-
-    Ok((name, symbol, decimals))
-}
