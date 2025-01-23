@@ -29,10 +29,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Token::Address("0xbbbb2d4d765c1e455e4896a64ba3883e914abbbb".parse()?),
     ];
     
-    let erc20_abi = AbiParser::default().parse(
+    let erc20_abi = AbiParser::default().parse(&[
         r#"[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"type":"function"},
             {"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"type":"function"},
             {"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}]"#,
+    ])?;  {"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}]"#,
     )?;
 
     let token_out: Address = path.last().unwrap().into_address().unwrap(); // Ensure last token in the path
