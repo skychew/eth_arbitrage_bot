@@ -129,7 +129,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // === Simulate Arbitrage ===
         simulate_arbitrage(sushi_price, uniswap_price, amount_in)?;
         } else {
-            println!("❌ Token pair not listed.Skipping...");
+            println!("❌ Skipping...");
             return Ok(()); // Skip further processing
         }
 
