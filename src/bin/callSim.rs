@@ -57,6 +57,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let token_out: Address = path.last().unwrap().clone().into_address().unwrap();
     let token_in: Address = path.first().unwrap().clone().into_address().unwrap();
+
+    if !allowed_tokens.contains(&token_in) {
+        println!("❌ Token In is not allowed: {:?}", token_in);
+    }
+    if !allowed_tokens.contains(&token_out) {
+        println!("❌ Token Out is not allowed: {:?}", token_out);
+    }
     if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
         println!("✅ Allowed Tokens Detected!");
 
@@ -116,7 +123,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // === Simulate Arbitrage ===
         simulate_arbitrage(sushi_price, uniswap_price, amount_in)?;
         } else {
-            println!("❌ Token pair not allowed.Skipping...");
+            println!("❌ Token pair not listed.Skipping...");
             return Ok(()); // Skip further processing
         }
 
