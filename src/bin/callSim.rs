@@ -55,9 +55,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Check if `token_in` and `token_out` in list
     if !allowed_tokens.contains(&token_in) || !allowed_tokens.contains(&token_out) {
-        warn!("Token In: {:?}", token_in);
-        warn!("Token Out: {:?}", token_out);
-        warn!("Unlisted Token, skipping...");
+        println!("Token In: {:?}", token_in);
+        println!("Token Out: {:?}", token_out);
+        println!("Unlisted Token, skipping...");
         continue;
     }
 
