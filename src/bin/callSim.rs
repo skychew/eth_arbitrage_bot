@@ -34,8 +34,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             {"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}]"#,
     ])?;
 
-    let token_out: Address = path.last().unwrap().into_address().unwrap(); // Ensure last token in the path
-    let token_in: Address = path.first().unwrap().into_address().unwrap(); // Ensure last token in the path
+    let token_out: Address = *path.last().unwrap().as_address().unwrap();
+    let token_in: Address = *path.first().unwrap().as_address().unwrap();
 
     // Contract instances
     let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
@@ -54,9 +54,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Ok(()); // Skip further processing
         }
     }
-
-  
-  
     
     // Check if `token_out` is a valid ERC-20 token
     match check_erc20(&contract_in).await {
