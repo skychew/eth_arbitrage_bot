@@ -3,6 +3,9 @@ Understanding the Current Arbitrage Strategy
 
 The bot is designed to simulate arbitrage opportunities by monitoring pending Ethereum transactions and analyzing swaps on decentralized exchanges (DEXs) like Uniswap and SushiSwap.
 
+V1 : Ethereum Mainnet, Eth based tokens only
+V2 :Other networks check sushiswap network selector list.
+
 Step-by-Step Breakdown of the Strategy
 
     1.	Subscribe to Pending Transactions
