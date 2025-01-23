@@ -57,70 +57,68 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let token_out: Address = path.last().unwrap().clone().into_address().unwrap();
     let token_in: Address = path.first().unwrap().clone().into_address().unwrap();
+    if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
+        println!("✅ Allowed Tokens Detected!");
 
-    // Check if `token_in` and `token_out` in list
-    if !allowed_tokens.contains(&token_in) || !allowed_tokens.contains(&token_out) {
-        println!("Token In: {:?}", token_in);
-        println!("Token Out: {:?}", token_out);
-        println!("Unlisted Token, skipping...");
-        continue;
-    }
+        // Contract instances
+        let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
+        let contract_in = Contract::new(token_in, erc20_abi.clone(), provider.clone());
 
-    // Contract instances
-    let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
-    let contract_in = Contract::new(token_in, erc20_abi.clone(), provider.clone());
-
-    // Check if `token_out` is a valid ERC-20 token
-    match check_erc20(&contract_out).await {
-        Ok((name, symbol, decimals)) => {
-            println!(
-                "✅ Valid ERC-20 Token Out: {} ({}) with {} decimals",
-                name, symbol, decimals
-            );
+        // Check if `token_out` is a valid ERC-20 token
+        match check_erc20(&contract_out).await {
+            Ok((name, symbol, decimals)) => {
+                println!(
+                    "✅ Valid ERC-20 Token Out: {} ({}) with {} decimals",
+                    name, symbol, decimals
+                );
+            }
+            Err(e) => {
+                println!("⚠️ Invalid or Non-ERC-20 Token Detected: {:?}, Error: {}", token_out, e);
+                return Ok(()); // Skip further processing
+            }
         }
-        Err(e) => {
-            println!("⚠️ Invalid or Non-ERC-20 Token Detected: {:?}, Error: {}", token_out, e);
+        
+        // Check if `token_out` is a valid ERC-20 token
+        match check_erc20(&contract_in).await {
+            Ok((name, symbol, decimals)) => {
+                println!(
+                    "✅ Valid ERC-20 Token Out: {} ({}) with {} decimals",
+                    name, symbol, decimals
+                );
+            }
+            Err(e) => {
+                println!("⚠️ Invalid or Non-ERC-20 Token Detected: {:?}, Error: {}", token_out, e);
+                return Ok(()); // Skip further processing
+            }
+        }
+
+        // Function selector for getAmountsOut
+        let function_selector = hex::decode("d06ca61f")?;
+        let encoded_params = ethers::abi::encode(&[
+            Token::Uint(amount_in),
+            Token::Array(path.clone()),
+        ]);
+
+        // SushiSwap call data
+        let mut sushi_call_data = function_selector.clone();
+        sushi_call_data.extend(encoded_params.clone());
+
+        // Uniswap call data
+        let mut uniswap_call_data = function_selector.clone();
+        uniswap_call_data.extend(encoded_params);
+
+        // === SushiSwap Call ===
+        let sushi_price = fetch_price(&provider, sushi_router, sushi_call_data, "SushiSwap").await;
+
+        // === Uniswap Call ===
+        let uniswap_price = fetch_price(&provider, uniswap_router, uniswap_call_data, "Uniswap").await;
+
+        // === Simulate Arbitrage ===
+        simulate_arbitrage(sushi_price, uniswap_price, amount_in)?;
+        } else {
+            println!("❌ Token pair not allowed.Skipping...");
             return Ok(()); // Skip further processing
         }
-    }
-    
-    // Check if `token_out` is a valid ERC-20 token
-    match check_erc20(&contract_in).await {
-        Ok((name, symbol, decimals)) => {
-            println!(
-                "✅ Valid ERC-20 Token Out: {} ({}) with {} decimals",
-                name, symbol, decimals
-            );
-        }
-        Err(e) => {
-            println!("⚠️ Invalid or Non-ERC-20 Token Detected: {:?}, Error: {}", token_out, e);
-            return Ok(()); // Skip further processing
-        }
-    }
-
-    // Function selector for getAmountsOut
-    let function_selector = hex::decode("d06ca61f")?;
-    let encoded_params = ethers::abi::encode(&[
-        Token::Uint(amount_in),
-        Token::Array(path.clone()),
-    ]);
-
-    // SushiSwap call data
-    let mut sushi_call_data = function_selector.clone();
-    sushi_call_data.extend(encoded_params.clone());
-
-    // Uniswap call data
-    let mut uniswap_call_data = function_selector.clone();
-    uniswap_call_data.extend(encoded_params);
-
-    // === SushiSwap Call ===
-    let sushi_price = fetch_price(&provider, sushi_router, sushi_call_data, "SushiSwap").await;
-
-    // === Uniswap Call ===
-    let uniswap_price = fetch_price(&provider, uniswap_router, uniswap_call_data, "Uniswap").await;
-
-    // === Simulate Arbitrage ===
-    simulate_arbitrage(sushi_price, uniswap_price, amount_in)?;
 
     Ok(())
 }
