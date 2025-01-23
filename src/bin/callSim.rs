@@ -8,14 +8,13 @@ use dotenv::dotenv;
 use ethers::abi::{AbiParser,Abi,Token};
 use std::io::Cursor;
 
-// Load the ABI from the embedded bytes
-let erc20_abi = Abi::load(Cursor::new(ERC20_ABI))?;
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment variables
     dotenv().ok();
     let infura_ws = std::env::var("ETH_WS_URL").expect("⚠️ ETH_WS_URL not set in .env");
+    // Load the ABI from the embedded bytes
+    let erc20_abi = Abi::load(Cursor::new(ERC20_ABI))?;
 
     // Connect to Ethereum Node
     let provider = Arc::new(Arc::new(Provider::<Ws>::connect(&infura_ws).await?));
