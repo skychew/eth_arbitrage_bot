@@ -59,19 +59,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token_in: Address = path.first().unwrap().clone().into_address().unwrap();
 
     if !allowed_tokens.contains(&token_in) {
-        println!("❌ Token In is not allowed: {:?}", token_in);
+        println!("❌ Token In is not listed: {:?}", token_in);
     }else{
         println!("TokenInListed: {:?}", token_in);
     }
     
     if !allowed_tokens.contains(&token_out) {
-        println!("❌ Token Out is not allowed: {:?}", token_out);
+        println!("❌ Token Out is not listed: {:?}", token_out);
     }else{
         println!("TokenOutListed: {:?}", token_out);
     }
 
     if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
-        println!("✅ Allowed Tokens Detected!");
+        println!("✅ Listed Tokens Detected!");
 
         // Contract instances
         let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
