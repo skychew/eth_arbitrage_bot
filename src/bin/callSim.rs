@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load the ABI from the embedded bytes
     let erc20_abi = Abi::load(Cursor::new(ERC20_ABI))?;
      // Define the list of allowed token addresses
-     let allowed_tokens: HashSet<Address> = HashSet::from([
+    let allowed_tokens: HashSet<Address> = HashSet::from([
         "0x2eaa73bd0db20c64f53febea7b5f5e5bccc7fb8b".parse().unwrap(), // ETH
         "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".parse().unwrap(), // WETH
         "0x514910771AF9Ca656af840dff83E8264EcF986CA".parse().unwrap(), // LINK
@@ -52,7 +52,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         //Token::Address("0xdac17f958d2ee523a2206206994597c13d831ec7".parse()?), // USDT
         Token::Address("0xbbbb2d4d765c1e455e4896a64ba3883e914abbbb".parse()?),
     ];
-    
+
+    let token_out: Address = path.last().unwrap().clone().into_address().unwrap();
+    let token_in: Address = path.first().unwrap().clone().into_address().unwrap();
+
     // Check if `token_in` and `token_out` in list
     if !allowed_tokens.contains(&token_in) || !allowed_tokens.contains(&token_out) {
         println!("Token In: {:?}", token_in);
@@ -60,9 +63,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Unlisted Token, skipping...");
         continue;
     }
-
-    let token_out: Address = path.last().unwrap().clone().into_address().unwrap();
-    let token_in: Address = path.first().unwrap().clone().into_address().unwrap();
 
     // Contract instances
     let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
