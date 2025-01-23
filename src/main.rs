@@ -74,7 +74,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Connect to Ethereum provider
     let ws_url = std::env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
-    info!("Connecting to Eth WebSocket: {}", ws_url);
+    info!("================= Connecting to Eth WebSocket: {}", ws_url);
     let provider = Provider::<Ws>::connect(ws_url).await?;
     let provider = Arc::new(provider);
     info!("✅ Eth Node Connected, listening...");
@@ -109,7 +109,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     while let Some(tx_hash) = stream.next().await {
-        debug!("Rcvd Pending Transaction: {:?}", tx_hash);
+        debug!("==== Rcvd Pending Transaction: {:?}", tx_hash);
         /* ========
             •	What It Does:
                 For every pending transaction hash received from the mempool, the bot tries to fetch the full transaction details using get_transaction.
@@ -124,7 +124,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash, rate_limiter.clone()).await {
             if let Some(to) = transaction.to {
                 if dex_addresses.contains(&to) {
-                    info!("DEX Transaction Detected!: {:?}", tx_hash);
+                    info!("++ DEX Transaction Detected!: {:?}", tx_hash);
                     info!("From: {:?}", transaction.from);
                     info!("To: {:?}", transaction.to);
                     info!("Gas Price: {:?}", transaction.gas_price.map(|g| format_ether(g)));
@@ -137,6 +137,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         info!("🪙 Token Out: {:?}", token_out);
                         info!("💰 Amount In: {:?}", amount_in);
                         info!("👤 Recipient: {:?}", recipient);
+                        
+                        // Create a contract instance for token_in
+                        let contract_in = Contract::new(token_in, erc20_abi.clone(), provider.clone());
+                                            
+                        // Check if `token_in` is a valid ERC-20 token
+                        match check_erc20(&contract_in).await {
+                            Ok((name, symbol, decimals)) => {
+                                info!("Valid ERC-20 Token In: {} ({}) with {} decimals", name, symbol, decimals);
+                            }
+                            Err(_) => {
+                                warn!("Token In:Invalid or Non-ERC-20 Token Detected: {:?}", token_in);
+                                continue; // Skip further processing and move to the next transaction
+                            }
+                        }
+
+                        // Create a contract instance for token_out
+                        let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
+
+                        // Check if `token_out` is a valid ERC-20 token
+                        match check_erc20(&contract_out).await {
+                            Ok((name, symbol, decimals)) => {
+                                info!("Valid ERC-20 Token Out: {} ({}) with {} decimals", name, symbol, decimals);
+                            }
+                            Err(_) => {
+                                warn!("Token Out:Invalid or Non-ERC-20 Token Detected: {:?}", token_out);
+                                continue; // Skip further processing and move to the next transaction
+                            }
+                        }
 
                         // Router Addresses
                         let sushi_router: Address = "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F".parse()?;
@@ -419,7 +447,7 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
                 info!("🔸 Sell on SushiSwap: {}", sushi);
                 info!("💵 Profit (after gas): {}", profit);
             } else {
-                println!("❌ No profitable arbitrage (after gas).");
+                info!("❌ No profitable arbitrage (after gas).");
             }
         } else if uni > sushi {
             let profit = uni.checked_sub(sushi).unwrap_or_default().checked_sub(gas_fee_eth).unwrap_or_default();
@@ -498,7 +526,7 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
     None
 }
 
-// 🔍 Fetch DEX Prices
+/// 🔍 Fetch DEX Prices
 async fn fetch_price(
     provider: &Arc<Provider<Ws>>,
     router: Address,
@@ -506,7 +534,7 @@ async fn fetch_price(
     call_data: Vec<u8>,
     dex_name: &str,
 ) -> Option<U256> {
-    println!("📞 Fetching price from {}...", dex_name);
+    info!("📞 Fetching price from {}...", dex_name);
 
     let tx = TransactionRequest::new()
         .to(router)
@@ -530,4 +558,19 @@ async fn fetch_price(
             None
         }
     }
+}
+
+/// check if token is ERC-20
+async fn check_erc20(
+    contract: &Contract<Provider<Http>>,) -> Result<(String, String, u8), Box<dyn std::error::Error>> {
+    // Query `name`
+    let name: String = contract.method("name", ())?.call().await?;
+
+    // Query `symbol`
+    let symbol: String = contract.method("symbol", ())?.call().await?;
+
+    // Query `decimals`
+    let decimals: u8 = contract.method("decimals", ())?.call().await?;
+
+    Ok((name, symbol, decimals))
 }
