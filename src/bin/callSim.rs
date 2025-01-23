@@ -28,6 +28,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         //Token::Address("0xdac17f958d2ee523a2206206994597c13d831ec7".parse()?), // USDT
         Token::Address("0xbbbb2d4d765c1e455e4896a64ba3883e914abbbb".parse()?),
     ];
+    
+    let erc20_abi = Abi::parse(r#"[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}]"#)?;
+
+    let token_out: Address = path.last().unwrap().to_address().unwrap(); // Ensure last token in the path
+    let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
+    
+    // Check if `token_out` is a valid ERC-20 token
+    match check_erc20(&contract_out).await {
+        Ok((name, symbol, decimals)) => {
+            println!(
+                "✅ Valid ERC-20 Token Out: {} ({}) with {} decimals",
+                name, symbol, decimals
+            );
+        }
+        Err(e) => {
+            println!("⚠️ Invalid or Non-ERC-20 Token Detected: {:?}, Error: {}", token_out, e);
+            return Ok(()); // Skip further processing
+        }
+    }
+
+    let token_in: Address = path.first().unwrap().to_address().unwrap(); // Ensure last token in the path
+    let contract_in = Contract::new(token_in, erc20_abi.clone(), provider.clone());
+    
+    // Check if `token_out` is a valid ERC-20 token
+    match check_erc20(&contract_in).await {
+        Ok((name, symbol, decimals)) => {
+            println!(
+                "✅ Valid ERC-20 Token Out: {} ({}) with {} decimals",
+                name, symbol, decimals
+            );
+        }
+        Err(e) => {
+            println!("⚠️ Invalid or Non-ERC-20 Token Detected: {:?}, Error: {}", token_out, e);
+            return Ok(()); // Skip further processing
+        }
+    }
 
     // Function selector for getAmountsOut
     let function_selector = hex::decode("d06ca61f")?;
@@ -125,4 +161,19 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
     }
 
     Ok(())
+}
+
+/// check if token is ERC-20
+async fn check_erc20(
+    contract: &Contract<Provider<Http>>,) -> Result<(String, String, u8), Box<dyn std::error::Error>> {
+    // Query `name`
+    let name: String = contract.method("name", ())?.call().await?;
+
+    // Query `symbol`
+    let symbol: String = contract.method("symbol", ())?.call().await?;
+
+    // Query `decimals`
+    let decimals: u8 = contract.method("decimals", ())?.call().await?;
+
+    Ok((name, symbol, decimals))
 }
