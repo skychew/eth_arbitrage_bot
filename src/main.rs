@@ -46,6 +46,7 @@ use std::fs::OpenOptions;
 use env_logger::{Builder, Target};
 use ethers::abi::{AbiParser, Abi, Token};
 use ethers::types::{Bytes, U256};
+use std::collections::HashSet;
 //use std::collections::HashMap;
 
 //use retry::{retry_async, delay::Exponential};
@@ -172,10 +173,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             info!("🪙 Token Out: {:?}", token_out);
                             info!("💰 Amount In: {:?}", amount_in);
                             info!("👤 Recipient: {:?}", recipient);
-                            
-                            // Create a contract instance
-                            let contract_in = Contract::new(token_in, erc20_abi.clone(), provider.clone());
-                            let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
 
                             // Router Addresses
                             let sushi_router: Address = "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F".parse()?;
