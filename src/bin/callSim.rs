@@ -1,4 +1,4 @@
-static ERC20_ABI: &[u8] = include_bytes!("../abi/erc20abi.json");
+static ERC20_ABI: &[u8] = include_bytes!("../../abi/erc20abi.json");
 
 use ethers::prelude::*;
 use ethers::providers::{Provider, Ws};
