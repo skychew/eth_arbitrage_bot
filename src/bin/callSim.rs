@@ -3,7 +3,7 @@ use ethers::providers::{Provider, Ws};
 use ethers::types::{TransactionRequest, Address, U256};
 use std::sync::Arc;
 use dotenv::dotenv;
-use ethers::abi::{AbiParser, Abi, Token};
+use ethers::abi::{Abi, Token};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -29,7 +29,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Token::Address("0xbbbb2d4d765c1e455e4896a64ba3883e914abbbb".parse()?),
     ];
     
-    let erc20_abi = Abi::parse(r#"[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}]"#)?;
+    let erc20_abi = AbiParser::default().parse(
+        r#"[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"type":"function"},
+            {"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"type":"function"},
+            {"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}]"#,
+    )?;
 
     let token_out: Address = path.last().unwrap().into_address().unwrap(); // Ensure last token in the path
     let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
