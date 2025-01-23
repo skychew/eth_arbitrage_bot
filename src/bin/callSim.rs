@@ -60,10 +60,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if !allowed_tokens.contains(&token_in) {
         println!("❌ Token In is not allowed: {:?}", token_in);
+    }else{
+        println!("TokenInListed: {:?}", token_in);
     }
+    
     if !allowed_tokens.contains(&token_out) {
         println!("❌ Token Out is not allowed: {:?}", token_out);
+    }else{
+        println!("TokenOutListed: {:?}", token_out);
     }
+
     if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
         println!("✅ Allowed Tokens Detected!");
 
