@@ -14,10 +14,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Ethereum Node
     let provider = Arc::new(Arc::new(Provider::<Ws>::connect(&infura_ws).await?));
 
-// Contract instances
-let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
-let contract_in = Contract::new(token_in, erc20_abi.clone(), provider.clone());
-
     println!("✅ Connected to Ethereum Node...");
 
     // Router Addresses
@@ -40,7 +36,7 @@ let contract_in = Contract::new(token_in, erc20_abi.clone(), provider.clone());
 
     let token_out: Address = path.last().unwrap().into_address().unwrap(); // Ensure last token in the path
     let token_in: Address = path.first().unwrap().into_address().unwrap(); // Ensure last token in the path
-    
+
     // Contract instances
     let contract_out = Contract::new(token_out, erc20_abi.clone(), provider.clone());
     let contract_in = Contract::new(token_in, erc20_abi.clone(), provider.clone());
