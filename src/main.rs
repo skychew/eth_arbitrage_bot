@@ -151,6 +151,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             •	If the transaction is a DEX swap, the bot decodes the input data to extract the token addresses, amounts, and recipient.
             •	Finally, the bot calls simulate_arbitrage to check for profitable arbitrage opportunities.
             ===========
+            AMT ETH will be 0 if no ethereum transffered. But there will sometimes be value even if the transfer tokens doest not have Eth. It could be payments for the gas fee.
         */
         if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash, rate_limiter.clone()).await {
             if let Some(to) = transaction.to {
@@ -162,7 +163,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     info!("To   : {:?}", transaction.to);
                     let gas_price = transaction.gas_price.map(|g| ethers::utils::format_units(g, "gwei").unwrap());
                     info!("Gas Price: {} Gwei", gas_price.unwrap_or_else(|| "unknown".to_string()));
-                    info!("Value: {} ETH", format_ether(transaction.value));
+                    info!("AMT ETH: {} ETH", format_ether(transaction.value));
 
                     // Decode transaction input
                     if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
