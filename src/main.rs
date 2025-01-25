@@ -128,13 +128,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     =========== */
     let mut stream = provider.subscribe_pending_txs().await?;
     let dex_addresses = vec![
-        "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse()?, // Uniswap V2 Router
-        "0xe592427a0aece92de3edee1f18e0157c05861564".parse()?, // Uniswap V3 Router
-        "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse()?, // SushiSwap Router
+        ("Uniswap V2", "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse().unwrap()),
+        ("Uniswap V3", "0xe592427a0aece92de3edee1f18e0157c05861564".parse().unwrap()),
+        ("SushiSwap", "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse().unwrap()),
     ];
+    let dex_groups = vec![
+        ("Uniswap", vec![
+            "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse().unwrap(), // Uniswap V2
+            "0xe592427a0aece92de3edee1f18e0157c05861564".parse().unwrap()  // Uniswap V3
+        ]),
+        ("SushiSwap", vec![
+            "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse().unwrap() // SushiSwap
+        ]),
+    ];
+
         
     while let Some(tx_hash) = stream.next().await {
-        debug!("==== Rcvd Pending Transaction: {:?}", tx_hash);
+        debug!("==== Rcvd tx with hash: {:?}", tx_hash);
         /* ========
             •	What It Does:
                 For every pending transaction hash received from the mempool, the bot tries to fetch the full transaction details using get_transaction.
@@ -148,40 +158,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         */
         if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash, rate_limiter.clone()).await {
             if let Some(to) = transaction.to {
-                if dex_addresses.contains(&to) {
-                    info!("++++ DEX Transaction Detected!: {:?}", tx_hash);
-                    info!("From: {:?}", transaction.from);
-                    info!("To: {:?}", transaction.to);
-                    info!("Gas Price: {:?}", transaction.gas_price.map(|g| format_ether(g)));
+                
+                if let Some((detected_dex_name, _)) = dex_groups.iter().find(|(_, addresses)| addresses.contains(&to)) {
+                    info!("++ DEX TX Hash: {:?}", tx_hash);
+                    info!("DEX  : {} (Address: {:?})", detected_dex_name, to);
+                    info!("From : {:?}", transaction.from);
+                    info!("To   : {:?}", transaction.to);
+                    info!("Gas  : {:?}", transaction.gas_price.map(|g| format_ether(g)));
                     info!("Value: {} ETH", format_ether(transaction.value));
 
                     // Decode transaction input
                     if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
+                        let token_in_name = get_token_name(&token_in);
+                        let token_out_name = get_token_name(&token_out);
+                    
                         // Check if token is listed
                         if !allowed_tokens.contains(&token_in) {
-                            warn!("❌ Token In is not listed: {:?}", token_in);
+                            warn!("❌ Token In is not listed: {:?}", token_in_name);
                         }else{
-                            info!("TokenInListed: {:?}", token_in);
+                            info!("TokenInListed: {:?}", token_in_name);
                         }
                         
                         if !allowed_tokens.contains(&token_out) {
-                            warn!("❌ Token Out is not listed: {:?}", token_out);
+                            warn!("❌ Token Out is not listed: {:?}", token_out_name);
                         }else{
-                            info!("TokenOutListed: {:?}", token_out);
+                            info!("TokenOutListed: {:?}", token_out_name);
                         }
                     
-                        if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
+                        if allowed_tokens.contains(&token_in_name) && allowed_tokens.contains(&token_out) {
                             info!("✅ Listed Tokens. Starting Arbitrage Sim!");
-                            info!("🪙 Token In: {:?}", token_in);
-                            info!("🪙 Token Out: {:?}", token_out);
+                            info!("🪙 Token In: {:?}", token_in_name);
+                            info!("🪙 Token Out: {:?}", token_out_name);
                             info!("💰 Amount In: {:?}", amount_in);
                             info!("👤 Recipient: {:?}", recipient);
 
-                            // Router Addresses
-                            let sushi_router: Address = "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F".parse()?;
-                            let uniswap_router: Address = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D".parse()?;
-
-                            // Define token pair: WETH -> USDT
                             let amount_in = U256::from_dec_str("1000000000000000000")?; //replace with hardcoded value to check price
                             let path = vec![
                                 Token::Address(token_in), 
@@ -194,23 +204,58 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 Token::Uint(amount_in),
                                 Token::Array(path.clone()),
                             ]);
+                             /* 
+                            let mut call_data = function_selector.clone();
+                            call_data.extend(encoded_params.clone());
+                                */
 
-                            // SushiSwap call data
-                            let mut sushi_call_data = function_selector.clone();
-                            sushi_call_data.extend(encoded_params.clone());
+                            // Define call data
+                            let path = vec![Token::Address(token_in), Token::Address(token_out)];
+                            let function_selector = hex::decode("d06ca61f")?;
+                            let encoded_params = ethers::abi::encode(&[
+                                Token::Uint(amount_in),
+                                Token::Array(path.clone()),
+                            ]);
+                            let call_data = [function_selector.clone(), encoded_params.clone()].concat();
 
-                            // Uniswap call data
-                            let mut uniswap_call_data = function_selector.clone();
-                            uniswap_call_data.extend(encoded_params);
+                            // Determine the DEXes to simulate arbitrage
+                            let remaining_dexes: Vec<&str> = match detected_dex_name {
+                                "Uniswap" => vec!["SushiSwap"],
+                                "SushiSwap" => vec!["Uniswap V2", "Uniswap V3"],
+                                _ => vec![], // Shouldn't happen if dex_groups is exhaustive
+                            };
 
+                            let mut prices = vec![];
+                            for dex_name in remaining_dexes {
+                                if let Some(dex_addresses) = dex_groups.iter().find(|(name, _)| name == &dex_name).map(|(_, addresses)| addresses) {
+                                    for dex_address in dex_addresses {
+                                        if let Some(price) = fetch_price(&provider, *dex_address, call_data.clone(), dex_name).await {
+                                            prices.push((dex_name.to_string(), price));
+                                            info!("💱 Fetched price from {} ({}): {}", dex_name, dex_address, price);
+                                        } else {
+                                            warn!("❌ Failed to fetch price from {}", dex_name);
+                                        }
+                                    }
+                                }
+                            }
+                            /* 
                             // === SushiSwap Call ===
                             let sushi_price = fetch_price(&provider, sushi_router, sushi_call_data, "SushiSwap").await;
 
                             // === Uniswap Call ===
                             let uniswap_price = fetch_price(&provider, uniswap_router, uniswap_call_data, "Uniswap").await;
+                            */
 
-                            // === Simulate Arbitrage ===
-                            simulate_arbitrage(sushi_price, uniswap_price, amount_in)?;
+                            // Perform arbitrage simulation if we have at least two prices
+                            if prices.len() >= 2 {
+                                let mut prices_iter = prices.iter();
+                                let first_price = prices_iter.next().unwrap();
+                                let second_price = prices_iter.next().unwrap();
+
+                                simulate_arbitrage(Some(first_price.1), Some(second_price.1), amount_in)?;
+                            } else {
+                                warn!("❌ Not enough price data for arbitrage simulation.");
+                            }
                         }else {
                             warn!("❌ Skipping...");
                         }
@@ -572,4 +617,29 @@ async fn fetch_price(
             None
         }
     }
+}
+
+// Mapping token addresses to their names
+fn get_token_name(address: &Address) -> String {
+    let token_map: HashMap<Address, &str> = HashMap::from([
+        ("0x2eaa73bd0db20c64f53febea7b5f5e5bccc7fb8b".parse().unwrap(), "ETH"),
+        ("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".parse().unwrap(), "WETH"),
+        ("0x514910771AF9Ca656af840dff83E8264EcF986CA".parse().unwrap(), "LINK"),
+        ("0x163f8C2467924be0ae7B5347228CABF260318753".parse().unwrap(), "WLD"),
+        ("0xfAbA6f8e4a5E8Ab82F62fe7C39859FA577269BE3".parse().unwrap(), "ONDO"),
+        ("0x57e114B691Db790C35207b2e685D4A43181e6061".parse().unwrap(), "ENA"),
+        ("0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE".parse().unwrap(), "SHIB"),
+        ("0x6982508145454Ce325dDbE47a25d4ec3d2311933".parse().unwrap(), "PEPE"),
+        ("0x4C1746A800D224393fE2470C70A35717eD4eA5F1".parse().unwrap(), "PLUME"),
+        ("0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C".parse().unwrap(), "SPX"),
+        ("0xaaeE1A9723aaDB7afA2810263653A34bA2C21C7a".parse().unwrap(), "MOG"),
+        ("0xA2cd3D43c775978A96BdBf12d733D5A1ED94fb18".parse().unwrap(), "XCN"),
+        ("0xdac17f958d2ee523a2206206994597c13d831ec7".parse().unwrap(), "USDT"),
+        ("0x6b3595068778dd592e39a122f4f5a5cf09c90fe2".parse().unwrap(), "SUSHI"),
+        ("0x2260fac5e5542a773aa44fbcfedf7c193bc2c599".parse().unwrap(), "WBTC"),
+        ("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48".parse().unwrap(), "USDC"),
+        ("0x6b175474e89094c44da98b954eedeac495271d0f".parse().unwrap(), "DAI"),
+    ]);
+
+    token_map.get(address).unwrap_or(&"Unknown").to_string()
 }
