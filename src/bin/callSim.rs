@@ -8,7 +8,6 @@ use dotenv::dotenv;
 use ethers::abi::{Abi,Token};
 use std::io::Cursor;
 use std::collections::HashSet;
-use std::collections::HashMap;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
