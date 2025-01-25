@@ -188,11 +188,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             info!("💰 Amount In: {:?}", amount_in);
                             info!("👤 Recipient: {:?}", recipient);
 
-                            let amount_in = U256::from_dec_str("1000000000000000000")?; //replace with hardcoded value to check price
-                            let path = vec![
-                                Token::Address(token_in), 
-                                Token::Address(token_out),
-                            ];
+                            let amount_in = U256::from_dec_str("1000000000000000000")?; //replace with hardcode
 
                             // Define call data
                             let path = vec![Token::Address(token_in), Token::Address(token_out)];
