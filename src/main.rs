@@ -160,7 +160,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     info!("DEX  : {} (Address: {:?})", detected_dex_name, to);
                     info!("From : {:?}", transaction.from);
                     info!("To   : {:?}", transaction.to);
-                    info!("Gas  : {:?}", transaction.gas_price.map(|g| format_ether(g)));
+                    let gas_price = transaction.gas_price.map(|g| ethers::utils::format_units(g, "gwei").unwrap());
+                    info!("Gas Price: {} Gwei", gas_price.unwrap_or_else(|| "unknown".to_string()));
                     info!("Value: {} ETH", format_ether(transaction.value));
 
                     // Decode transaction input
