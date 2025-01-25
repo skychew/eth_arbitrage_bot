@@ -194,20 +194,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 Token::Address(token_out),
                             ];
 
-                            // Function selector for getAmountsOut
-                            let function_selector = hex::decode("d06ca61f")?;
-                            let encoded_params = ethers::abi::encode(&[
-                                Token::Uint(amount_in),
-                                Token::Array(path.clone()),
-                            ]);
-                             /* 
-                            let mut call_data = function_selector.clone();
-                            call_data.extend(encoded_params.clone());
-                                */
-
                             // Define call data
                             let path = vec![Token::Address(token_in), Token::Address(token_out)];
-                            let function_selector = hex::decode("d06ca61f")?;
+                            let function_selector = hex::decode("d06ca61f")?; // Function selector for getAmountsOut
                             let encoded_params = ethers::abi::encode(&[
                                 Token::Uint(amount_in),
                                 Token::Array(path.clone()),
