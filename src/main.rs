@@ -185,7 +185,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             info!("TokenOutListed: {:?}", token_out_name);
                         }
                     
-                        if allowed_tokens.contains(&token_in_name) && allowed_tokens.contains(&token_out) {
+                        if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
                             info!("✅ Listed Tokens. Starting Arbitrage Sim!");
                             info!("🪙 Token In: {:?}", token_in_name);
                             info!("🪙 Token Out: {:?}", token_out_name);
