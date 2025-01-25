@@ -218,10 +218,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             ]);
                             let call_data = [function_selector.clone(), encoded_params.clone()].concat();
 
-                            // Determine the DEXes to simulate arbitrage
-                            let remaining_dexes: Vec<&str> = match detected_dex_name {
-                                "Uniswap" => vec!["SushiSwap"],
-                                "SushiSwap" => vec!["Uniswap V2", "Uniswap V3"],
+                            let remaining_dexes: Vec<&&str> = match detected_dex_name {
+                                &"Uniswap" => vec![&"SushiSwap"],
+                                &"SushiSwap" => vec![&"Uniswap V2", &"Uniswap V3"],
                                 _ => vec![], // Shouldn't happen if dex_groups is exhaustive
                             };
 
