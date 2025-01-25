@@ -127,11 +127,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	•	The subscription stream should continue indefinitely, feeding new transaction hashes as they appear.
     =========== */
     let mut stream = provider.subscribe_pending_txs().await?;
-    let dex_addresses = vec![
-        ("Uniswap V2", "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse().unwrap()),
-        ("Uniswap V3", "0xe592427a0aece92de3edee1f18e0157c05861564".parse().unwrap()),
-        ("SushiSwap", "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse().unwrap()),
-    ];
+
     let dex_groups = vec![
         ("Uniswap", vec![
             "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse().unwrap(), // Uniswap V2
