@@ -209,9 +209,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 for dex_address in dex_addresses {
                                     if let Some(price) = fetch_price(&provider, *dex_address, call_data.clone(), dex_name).await {
                                         prices.push((dex_name.to_string(), price));
-                                        //info!("💱 Fetched price from {} ({}): {}", dex_name, dex_address, price);
-                                    } else {
-                                        warn!("❌ Failed to fetch price from {}", dex_name);
                                     }
                                 }
                             }
