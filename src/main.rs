@@ -51,6 +51,8 @@ use ethers::abi::{AbiParser, Abi, Token};
 use ethers::types::{Bytes, U256};
 use std::collections::HashSet;
 use std::collections::HashMap;
+use reqwest;
+use serde_json::Value;
 
 //use retry::{retry_async, delay::Exponential};
 //use retry::OperationResult;
@@ -208,6 +210,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         prices.push((dex_name.to_string(), price));
                                     }
                                 }
+                            }
+                            // Check Binance price.
+                            let symbol = format!("{}{}", token_in_name, token_out_name);
+                            if valid_pairs.contains(&symbol) {
+                                match fetch_binance_price(&symbol).await {
+                                    Ok(price) => {
+                                        println!("💱 Current Price for {}: ${:.2}", symbol, price);
+                                    }
+                                    Err(e) => {
+                                        eprintln!("❌ Error fetching price for {}: {}", symbol, e);
+                                    }
+                                }
+                            } else {
+                                println!("❌ Pair {} is not valid on Binance.", symbol);
                             }
 
                             // Perform arbitrage simulation if we have at least two prices
@@ -445,7 +461,6 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                 }
             }
         }
-
         // Unknown function selector
         _ => {
             info!("❓ Unknown Function Selector: 0x{}", selector);
@@ -606,4 +621,58 @@ fn get_token_name(address: &Address) -> String {
     ]);
 
     token_map.get(address).unwrap_or(&"Unknown").to_string()
+}
+
+/// Fetch the real-time price of a trading pair from Binance
+///
+/// # Arguments:
+/// - `symbol`: The trading pair symbol (e.g., "BTCUSDT").
+///
+/// # Returns:
+/// - `Ok(f64)`: The current price as a floating-point number if successful.
+/// - `Err(Box<dyn Error>)`: An error message if the request fails.
+async fn fetch_binance_price(symbol: &str) -> Result<f64, Box<dyn Error>> {
+    let binance_url = "https://api.binance.com/api/v3/ticker/price";
+    let request_url = format!("{}?symbol={}", binance_url, symbol);
+
+    let response = reqwest::get(&request_url).await?;
+    if response.status().is_success() {
+        let data: Value = response.json().await?;
+        let price: f64 = data["price"].as_str().unwrap().parse()?;
+        Ok(price)
+    } else {
+        Err(format!(
+            "Failed to fetch price for {}: {}",
+            symbol,
+            response.status()
+        )
+        .into())
+    }
+}
+
+/// Fetch all valid trading pairs from Binance
+///
+/// # Returns:
+/// - `Ok<HashSet<String>>`: A set of valid trading pairs if successful.
+/// - `Err<Box<dyn Error>>`: An error message if the request fails.
+async fn fetch_valid_pairs() -> Result<HashSet<String>, Box<dyn Error>> {
+    let binance_url = "https://api.binance.com/api/v3/exchangeInfo";
+    let response = reqwest::get(binance_url).await?;
+
+    if response.status().is_success() {
+        let data: Value = response.json().await?;
+        let empty_vec = vec![]; // Create a persistent empty vector
+        let symbols = data["symbols"].as_array().unwrap_or(&empty_vec); // Use a reference to the variable
+        let valid_pairs: HashSet<String> = symbols
+            .iter()
+            .filter_map(|symbol| symbol["symbol"].as_str().map(|s| s.to_string()))
+            .collect();
+        Ok(valid_pairs)
+    } else {
+        Err(format!(
+            "Failed to fetch valid pairs from Binance: {}",
+            response.status()
+        )
+        .into())
+    }
 }
