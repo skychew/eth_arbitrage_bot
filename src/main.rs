@@ -202,7 +202,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let call_data = [function_selector.clone(), encoded_params.clone()].concat();
 
                             let mut prices = vec![];
-                            for (dex_name, dex_addresses) in dex_groups {
+                            for (dex_name, dex_addresses) in &dex_groups {
                                 for dex_address in dex_addresses {
                                     if let Some(price) = fetch_price(&provider, dex_address, call_data.clone(), dex_name).await {
                                         prices.push((dex_name.to_string(), price));
