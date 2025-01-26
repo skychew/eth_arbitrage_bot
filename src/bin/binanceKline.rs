@@ -1,6 +1,6 @@
 use reqwest;
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use tokio::time::{sleep, Duration};
 
@@ -27,25 +27,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("0x6b175474e89094c44da98b954eedeac495271d0f", "DAI"),
     ]);
 
-    println!("📡 Fetching current prices for all trading pairs...");
+    println!("📡 Fetching valid trading pairs from Binance...");
+    let valid_pairs = fetch_valid_pairs().await?;
 
-    // Loop through all unique combinations of trading pairs
+    println!("📡 Fetching current prices for all valid trading pairs...");
     let symbols: Vec<&str> = tokens.values().cloned().collect();
-    let request_interval = Duration::from_millis(1000); // Throttle requests to 1 per second
+    let request_interval = Duration::from_millis(100); // Throttle requests to 10 per second
+
     for i in 0..symbols.len() {
         for j in 0..symbols.len() {
             if i != j {
                 let symbol = format!("{}{}", symbols[i], symbols[j]);
-                match fetch_binance_price(&symbol).await {
-                    Ok(price) => {
-                        println!("💱 Current Price for {}: ${:.2}", symbol, price);
+                if valid_pairs.contains(&symbol) {
+                    match fetch_binance_price(&symbol).await {
+                        Ok(price) => {
+                            println!("💱 Current Price for {}: ${:.2}", symbol, price);
+                        }
+                        Err(e) => {
+                            eprintln!("❌ Error fetching price for {}: {}", symbol, e);
+                        }
                     }
-                    Err(e) => {
-                        eprintln!("❌ Error fetching price for {}: {}", symbol, e);
-                    }
+                    // Add a delay to throttle requests
+                    sleep(request_interval).await;
+                } else {
+                    println!("❌ Pair {} is not valid on Binance.", symbol);
                 }
-                // Add a delay to throttle requests
-                sleep(request_interval).await;
             }
         }
     }
@@ -62,24 +68,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// - `Ok(f64)`: The current price as a floating-point number if successful.
 /// - `Err(Box<dyn Error>)`: An error message if the request fails.
 async fn fetch_binance_price(symbol: &str) -> Result<f64, Box<dyn Error>> {
-    // Binance API endpoint for Ticker Price
     let binance_url = "https://api.binance.com/api/v3/ticker/price";
-
-    // Construct the request URL
     let request_url = format!("{}?symbol={}", binance_url, symbol);
 
-    // Make the API request
     let response = reqwest::get(&request_url).await?;
     if response.status().is_success() {
-        // Parse the JSON response
         let data: Value = response.json().await?;
-        // Extract the price as a floating-point number
         let price: f64 = data["price"].as_str().unwrap().parse()?;
         Ok(price)
     } else {
         Err(format!(
             "Failed to fetch price for {}: {}",
             symbol,
+            response.status()
+        )
+        .into())
+    }
+}
+
+/// Fetch all valid trading pairs from Binance
+///
+/// # Returns:
+/// - `Ok<HashSet<String>>`: A set of valid trading pairs if successful.
+/// - `Err<Box<dyn Error>>`: An error message if the request fails.
+async fn fetch_valid_pairs() -> Result<HashSet<String>, Box<dyn Error>> {
+    let binance_url = "https://api.binance.com/api/v3/exchangeInfo";
+    let response = reqwest::get(binance_url).await?;
+
+    if response.status().is_success() {
+        let data: Value = response.json().await?;
+        let symbols = data["symbols"].as_array().unwrap_or(&vec![]);
+        let valid_pairs: HashSet<String> = symbols
+            .iter()
+            .filter_map(|symbol| symbol["symbol"].as_str().map(|s| s.to_string()))
+            .collect();
+        Ok(valid_pairs)
+    } else {
+        Err(format!(
+            "Failed to fetch valid pairs from Binance: {}",
             response.status()
         )
         .into())
