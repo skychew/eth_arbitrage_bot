@@ -207,12 +207,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let mut prices = vec![];
                             for (dex_name, dex_addresses) in dex_groups {
                                 for dex_address in dex_addresses {
-                                    if let Some(price) = fetch_price(&provider, *dex_address, call_data.clone(), dex_name).await {
+                                    if let Some(price) = fetch_price(&provider, dex_address, call_data.clone(), dex_name).await {
                                         prices.push((dex_name.to_string(), price));
                                     }
                                 }
                             }
-                            
+
                             // Perform arbitrage simulation if we have at least two prices
                             if prices.len() >= 2 {
                                 let mut prices_iter = prices.iter();
