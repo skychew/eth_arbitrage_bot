@@ -172,13 +172,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     
                         // Check if token is listed
                         if !allowed_tokens.contains(&token_in) {
-                            warn!("❌ Token In is not listed: {:?}", token_in_name);
+                            warn!("❌ TokenInUnListed: {:?}", token_in);
                         }else{
                             info!("TokenInListed: {:?}", token_in_name);
                         }
                         
                         if !allowed_tokens.contains(&token_out) {
-                            warn!("❌ Token Out is not listed: {:?}", token_out_name);
+                            warn!("❌ TokenOutUnListed: {:?}", token_out);
                         }else{
                             info!("TokenOutListed: {:?}", token_out_name);
                         }
