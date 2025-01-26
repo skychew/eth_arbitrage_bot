@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Loop through all unique combinations of trading pairs
     let symbols: Vec<&str> = tokens.values().cloned().collect();
-    let request_interval = Duration::from_millis(100); // Throttle requests to 10 per second
+    let request_interval = Duration::from_millis(1000); // Throttle requests to 1 per second
     for i in 0..symbols.len() {
         for j in 0..symbols.len() {
             if i != j {
