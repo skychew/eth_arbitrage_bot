@@ -140,7 +140,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ]),
     ];
 
-        
+    debug!("📡 Fetching valid trading pairs from Binance...");
+    let valid_pairs = fetch_valid_pairs().await?;
+
     while let Some(tx_hash) = stream.next().await {
         debug!("==== Rcvd tx with hash: {:?}", tx_hash);
         /* ========
@@ -213,6 +215,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                             // Check Binance price.
                             let symbol = format!("{}{}", token_in_name, token_out_name);
+                            
                             if valid_pairs.contains(&symbol) {
                                 match fetch_binance_price(&symbol).await {
                                     Ok(price) => {
