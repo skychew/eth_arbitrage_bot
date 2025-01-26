@@ -200,26 +200,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 Token::Array(path.clone()),
                             ]);
                             let call_data = [function_selector.clone(), encoded_params.clone()].concat();
-/* Did not need to filter dexes as we are using the dex_groups
-                            let remaining_dexes: Vec<&&str> = match detected_dex_name {
-                                &"Uniswap" => vec![&"SushiSwap"],
-                                &"SushiSwap" => vec![&"Uniswap V2", &"Uniswap V3"],
-                                _ => vec![], // Shouldn't happen if dex_groups is exhaustive
-                            };
-*/
+
                             // Explicitly define the DEX names to compare
                             let dexes_to_compare = vec!["Uniswap", "SushiSwap"];
-                            
+
                             let mut prices = vec![];
-                            for dex_name in remaining_dexes {
-                                if let Some(dex_addresses) = dex_groups.iter().find(|(name, _)| **name == **dex_name).map(|(_, addresses)| addresses) {
-                                    for dex_address in dex_addresses {
-                                        if let Some(price) = fetch_price(&provider, *dex_address, call_data.clone(), dex_name).await {
-                                            prices.push((dex_name.to_string(), price));
-                                            info!("💱 Fetched price from {} ({}): {}", dex_name, dex_address, price);
-                                        } else {
-                                            warn!("❌ Failed to fetch price from {}", dex_name);
-                                        }
+                            for (dex_name, dex_addresses) in dex_groups {
+                                for dex_address in dex_addresses {
+                                    if let Some(price) = fetch_price(&provider, *dex_address, call_data.clone(), dex_name).await {
+                                        prices.push((dex_name.to_string(), price));
+                                        //info!("💱 Fetched price from {} ({}): {}", dex_name, dex_address, price);
+                                    } else {
+                                        warn!("❌ Failed to fetch price from {}", dex_name);
                                     }
                                 }
                             }
