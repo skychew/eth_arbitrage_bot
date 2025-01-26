@@ -212,14 +212,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     }
                                 }
                             }
-                            /* 
-                            // === SushiSwap Call ===
-                            let sushi_price = fetch_price(&provider, sushi_router, sushi_call_data, "SushiSwap").await;
-
-                            // === Uniswap Call ===
-                            let uniswap_price = fetch_price(&provider, uniswap_router, uniswap_call_data, "Uniswap").await;
-                            */
-
+                            
                             // Perform arbitrage simulation if we have at least two prices
                             if prices.len() >= 2 {
                                 let mut prices_iter = prices.iter();
