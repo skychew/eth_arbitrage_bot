@@ -207,8 +207,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 _ => vec![], // Shouldn't happen if dex_groups is exhaustive
                             };
 */
+                            // Explicitly define the DEX names to compare
+                            let dexes_to_compare = vec!["Uniswap", "SushiSwap"];
+                            
                             let mut prices = vec![];
-                            for dex_name in dex_groups {
+                            for dex_name in remaining_dexes {
                                 if let Some(dex_addresses) = dex_groups.iter().find(|(name, _)| **name == **dex_name).map(|(_, addresses)| addresses) {
                                     for dex_address in dex_addresses {
                                         if let Some(price) = fetch_price(&provider, *dex_address, call_data.clone(), dex_name).await {
