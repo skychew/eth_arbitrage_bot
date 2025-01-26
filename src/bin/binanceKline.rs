@@ -2,6 +2,7 @@ use reqwest;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::error::Error;
+use tokio::time::{sleep, Duration};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -30,6 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Loop through all unique combinations of trading pairs
     let symbols: Vec<&str> = tokens.values().cloned().collect();
+    let request_interval = Duration::from_millis(100); // Throttle requests to 10 per second
     for i in 0..symbols.len() {
         for j in 0..symbols.len() {
             if i != j {
@@ -42,6 +44,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         eprintln!("❌ Error fetching price for {}: {}", symbol, e);
                     }
                 }
+                // Add a delay to throttle requests
+                sleep(request_interval).await;
             }
         }
     }
