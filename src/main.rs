@@ -1,42 +1,3 @@
-/*
-Understanding the Current Arbitrage Strategy
-
-The bot is designed to simulate arbitrage opportunities by monitoring pending Ethereum transactions and analyzing swaps on decentralized exchanges (DEXs) like Uniswap and SushiSwap.
-
-V1 : Ethereum Mainnet, Eth based tokens only
-V2 :Other networks check sushiswap network selector list.
-
-Step-by-Step Breakdown of the Strategy
-
-    1.	Subscribe to Pending Transactions
-	    •	The bot connects to the Ethereum mempool using a WebSocket provider (Infura) and listens for pending transactions.
-	    •	Every pending transaction hash is fetched and examined.
-    2.	Filter Transactions by DEX Router Addresses
-	    •	It checks if the transaction’s to address matches known DEX router addresses (e.g., Uniswap V2/V3 or SushiSwap routers).
-	    •	If a transaction is sent to these routers, it’s likely a swap.
-	3.	Decode Swap Transactions
-	    •	The bot decodes the transaction input data to extract:
-        •	    Token In (token_in)
-        •	    Token Out (token_out)
-        •	    Amount In (amount_in)
-        •	    Recipient (recipient)
-        •	It handles functions like:
-            •	exactInput
-            •	exactOutput
-            •	exactInputSingle
-            •	exactOutputSingle
-	4.	Simulate Arbitrage
-	    •	For detected swaps, the bot tries to simulate a trade on multiple DEXs (Uniswap and SushiSwap) by calling the call method (which doesn’t execute transactions but simulates them).
-	    •	It encodes the swap call to fetch the expected output price on each DEX.
-	    •	It compares the simulated buy price and sell price across the DEXs.
-	5.	Profit Calculation
-	    •	Profit is calculated as:
-
-\text{Profit} = (\text{Sell Price} - \text{Buy Price}) - \text{Gas Cost}
-
-	•	If the profit is positive, the bot logs that a profitable arbitrage opportunity exists.
-    NEXTTODO:
-*/
 use ethers::prelude::*;
 use ethers::providers::{Provider, Ws, StreamExt};
 use ethers::utils::format_ether;
@@ -53,6 +14,7 @@ use std::collections::HashSet;
 use std::collections::HashMap;
 use reqwest;
 use serde_json::Value;
+use std::error::Error;
 
 //use retry::{retry_async, delay::Exponential};
 //use retry::OperationResult;
@@ -679,3 +641,43 @@ async fn fetch_valid_pairs() -> Result<HashSet<String>, Box<dyn Error>> {
         .into())
     }
 }
+
+/*
+Understanding the Current Arbitrage Strategy
+
+The bot is designed to simulate arbitrage opportunities by monitoring pending Ethereum transactions and analyzing swaps on decentralized exchanges (DEXs) like Uniswap and SushiSwap.
+
+V1 : Ethereum Mainnet, Eth based tokens only
+V2 :Other networks check sushiswap network selector list.
+
+Step-by-Step Breakdown of the Strategy
+
+    1.	Subscribe to Pending Transactions
+	    •	The bot connects to the Ethereum mempool using a WebSocket provider (Infura) and listens for pending transactions.
+	    •	Every pending transaction hash is fetched and examined.
+    2.	Filter Transactions by DEX Router Addresses
+	    •	It checks if the transaction’s to address matches known DEX router addresses (e.g., Uniswap V2/V3 or SushiSwap routers).
+	    •	If a transaction is sent to these routers, it’s likely a swap.
+	3.	Decode Swap Transactions
+	    •	The bot decodes the transaction input data to extract:
+        •	    Token In (token_in)
+        •	    Token Out (token_out)
+        •	    Amount In (amount_in)
+        •	    Recipient (recipient)
+        •	It handles functions like:
+            •	exactInput
+            •	exactOutput
+            •	exactInputSingle
+            •	exactOutputSingle
+	4.	Simulate Arbitrage
+	    •	For detected swaps, the bot tries to simulate a trade on multiple DEXs (Uniswap and SushiSwap) by calling the call method (which doesn’t execute transactions but simulates them).
+	    •	It encodes the swap call to fetch the expected output price on each DEX.
+	    •	It compares the simulated buy price and sell price across the DEXs.
+	5.	Profit Calculation
+	    •	Profit is calculated as:
+
+\text{Profit} = (\text{Sell Price} - \text{Buy Price}) - \text{Gas Cost}
+
+	•	If the profit is positive, the bot logs that a profitable arbitrage opportunity exists.
+    NEXTTODO:
+*/
