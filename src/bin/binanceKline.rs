@@ -97,7 +97,8 @@ async fn fetch_valid_pairs() -> Result<HashSet<String>, Box<dyn Error>> {
 
     if response.status().is_success() {
         let data: Value = response.json().await?;
-        let symbols = data["symbols"].as_array().unwrap_or(&vec![]);
+        let empty_vec = vec![]; // Create a persistent empty vector
+        let symbols = data["symbols"].as_array().unwrap_or(&empty_vec); // Use a reference to the variable
         let valid_pairs: HashSet<String> = symbols
             .iter()
             .filter_map(|symbol| symbol["symbol"].as_str().map(|s| s.to_string()))
