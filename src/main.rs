@@ -201,9 +201,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             ]);
                             let call_data = [function_selector.clone(), encoded_params.clone()].concat();
 
-                            // Explicitly define the DEX names to compare
-                            let dexes_to_compare = vec!["Uniswap", "SushiSwap"];
-
                             let mut prices = vec![];
                             for (dex_name, dex_addresses) in dex_groups {
                                 for dex_address in dex_addresses {
