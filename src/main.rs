@@ -542,7 +542,7 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
 
         match provider.get_transaction(tx_hash).await {
             Ok(Some(tx)) => {
-                if(attempt>0){
+                if attempt > 0 {
                     RETRY_COUNT.fetch_add(1, Ordering::SeqCst);//see if retry actually works.
                 }     
                 debug!("Transaction fetched successfully on attempt {}", attempt);
