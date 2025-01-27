@@ -1,7 +1,7 @@
 ///Read Me in footer
 use ethers::prelude::*;
 use ethers::providers::{Provider, Ws, StreamExt};
-use ethers::utils::format_ether;
+//use ethers::utils::format_ether;
 use ethers::types::{Transaction, H256};
 use ethers::abi::{AbiParser, Abi, Token};
 use ethers::types::{Bytes, U256};
@@ -109,7 +109,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     =========== */
     let mut stream = provider.subscribe_pending_txs().await?;
     // Initialize the number of hash processsed
-    Let mut hash_count = 0;       
+    let mut hash_count = 0;       
 
     debug!("📡 Fetching valid trading pairs from Binance...");
     let valid_pairs = fetch_valid_pairs().await?;
@@ -562,7 +562,7 @@ async fn fetch_price(
 ) -> Option<U256> {
     info!("📞 Fetching price from {}...", dex_name);
     API_TX_COUNT.fetch_add(1, Ordering::SeqCst);
-    
+
     let tx = TransactionRequest::new()
         .to(router)
         .data(call_data)
