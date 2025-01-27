@@ -28,6 +28,7 @@ use serde_json::Value;
 
 // Global counters
 static API_TX_COUNT: AtomicUsize = AtomicUsize::new(0);
+static API_TX_FAIL_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -35,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
 
     // Maximum 500 requests per second for Infura
-    let rate_limiter = Arc::new(Semaphore::new(498)); 
+    let rate_limiter = Adrc::new(Semaphore::new(498)); 
 
     // Initialize logging
     let log_file = OpenOptions::new()
@@ -518,7 +519,7 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limiter: Arc<Semaphore>) -> Option<Transaction> {
     let max_retries = 4; // Maximum number of retries 
     let mut attempt = 0;
-    let mut delay = Duration::from_millis(2000); // Initial delay
+    let mut delay = Duration::from_millis(50); // Initial delay
 
     // Acquire a permit from the rate limiter
     let permit: OwnedSemaphorePermit = rate_limiter.clone().acquire_owned().await.unwrap();
@@ -551,6 +552,7 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
         delay *= 2;
     }
     drop(permit);
+    API_TX_FAIL_COUNT.fetch_add(1, Ordering::SeqCst);
     debug!("Failed to fetch transaction after {} attempts", max_retries);
     None
 }
