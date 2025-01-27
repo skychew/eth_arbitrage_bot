@@ -1,7 +1,7 @@
 ///Read Me in footer
 use ethers::prelude::*;
 use ethers::providers::{Provider, Ws, StreamExt};
-//use ethers::utils::format_ether;
+use ethers::utils::format_ether;
 use ethers::types::{Transaction, H256};
 use ethers::abi::{AbiParser, Abi, Token};
 use ethers::types::{Bytes, U256};
