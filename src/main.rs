@@ -568,8 +568,9 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
 
     info!("❌ Transaction might not be in mempool. Checking receipt...");
 
-    let receipt = provider.get_transaction_receipt(tx_hash).await?;
-    if let Some(receipt) = receipt {
+ // Handle the Result from get_transaction_receipt
+ match provider.get_transaction_receipt(tx_hash).await {
+    Ok(Some(receipt)) => {
         if receipt.status == Some(0.into()) {
             info!("❌ Transaction failed: execution reverted.");
             REVERTED_COUNT.fetch_add(1, Ordering::SeqCst);
@@ -577,10 +578,15 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
             info!("✅ Transaction was mined successfully: {:?}", receipt);
             MINED_COUNT.fetch_add(1, Ordering::SeqCst);
         }
-    } else {
+    }
+    Ok(None) => {
         info!("❌ Transaction not found on-chain. Likely dropped.");
         DROPPED_COUNT.fetch_add(1, Ordering::SeqCst);
     }
+    Err(e) => {
+        info!("❌ Error fetching receipt: {:?}", e);
+    }
+}
 
     drop(permit);
     API_TX_FAIL_COUNT.fetch_add(1, Ordering::SeqCst);
