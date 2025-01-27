@@ -133,13 +133,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         debug!("Tx Hash: {:?}",tx_hash); 
         hash_count += 1; 
         //Tx only counts fetch_transaction and fetch_price
-        print!("\rHash#: {} | Tx#: {} | Fail#: {} | Retry#: {} | Dropped#: {} | Mined#: {} | Reverted#: {}", hash_count, 
+        print!("\rHash#: {} | Tx#: {} | Fail#: {} | Success#: {} | Retry#: {} | Dropped#: {} | Mined#: {} | Reverted#: {}", hash_count, 
         API_TX_COUNT.load(Ordering::SeqCst), 
         API_TX_FAIL_COUNT.load(Ordering::SeqCst),
+        SUCCESS_COUNT.load(Ordering::SeqCst),
         RETRY_COUNT.load(Ordering::SeqCst),
         DROPPED_COUNT.load(Ordering::SeqCst), 
         MINED_COUNT.load(Ordering::SeqCst), 
-        REVERTED_COUNT.load(Ordering::SeqCst)
+        REVERTED_COUNT.load(Ordering::SeqCst),
     ); 
 
         // Flush the output to ensure it appears immediately
@@ -542,7 +543,9 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
 
         match provider.get_transaction(tx_hash).await {
             Ok(Some(tx)) => {
-                if attempt > 0 {
+                if attempt == 0 {
+                    SUCCESS_COUNT.fetch_add(1, Ordering::SeqCst);
+                }else{
                     RETRY_COUNT.fetch_add(1, Ordering::SeqCst);//see if retry actually works.
                 }     
                 debug!("Transaction fetched successfully on attempt {}", attempt);
