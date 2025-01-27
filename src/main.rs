@@ -117,7 +117,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
      // Spawn a task to periodically print the counter
      tokio::spawn(async move {
         loop {
-            print!("\rAPI Transactions: {}", API_TX_COUNT.load(Ordering::SeqCst));
+            print!("\r            | API Transactions: {}", API_TX_COUNT.load(Ordering::SeqCst));
             io::stdout().flush().unwrap(); // Ensure the line updates immediately
             sleep(Duration::from_secs(60)).await;
         }
