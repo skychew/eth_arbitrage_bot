@@ -570,33 +570,33 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
         attempt += 1;
     }
 
-    info!("❌ Transaction might not be in mempool. Checking receipt...");
+        debug!("❌ Transaction might not be in mempool. Checking receipt...");
 
- // Handle the Result from get_transaction_receipt
- match provider.get_transaction_receipt(tx_hash).await {
-    Ok(Some(receipt)) => {
-        if receipt.status == Some(0.into()) {
-            info!("❌ Transaction failed: execution reverted.");
-            REVERTED_COUNT.fetch_add(1, Ordering::SeqCst);
-        } else {
-            info!("✅ Transaction was mined successfully: {:?}", receipt);
-            MINED_COUNT.fetch_add(1, Ordering::SeqCst);
+        // Handle the Result from get_transaction_receipt
+        match provider.get_transaction_receipt(tx_hash).await {
+            Ok(Some(receipt)) => {
+                if receipt.status == Some(0.into()) {
+                    debug!("❌ Transaction failed: execution reverted.");
+                    REVERTED_COUNT.fetch_add(1, Ordering::SeqCst);
+                } else {
+                    debug!("✅ Transaction was mined successfully: {:?}", receipt);
+                    MINED_COUNT.fetch_add(1, Ordering::SeqCst);
+                }
+            }
+            Ok(None) => {
+                debug!("❌ Transaction not found on-chain. Likely dropped.");
+                DROPPED_COUNT.fetch_add(1, Ordering::SeqCst);
+            }
+            Err(e) => {
+                debug!("❌ Error fetching receipt: {:?}", e);
+            }
         }
-    }
-    Ok(None) => {
-        info!("❌ Transaction not found on-chain. Likely dropped.");
-        DROPPED_COUNT.fetch_add(1, Ordering::SeqCst);
-    }
-    Err(e) => {
-        info!("❌ Error fetching receipt: {:?}", e);
-    }
-}
 
-    drop(permit);
-    API_TX_FAIL_COUNT.fetch_add(1, Ordering::SeqCst);
-    debug!("Failed to fetch transaction after {} attempts", max_retries);
-    None
-}
+        drop(permit);
+        API_TX_FAIL_COUNT.fetch_add(1, Ordering::SeqCst);
+        debug!("Failed to fetch transaction after {} attempts", max_retries);
+        None
+    }
 
 /// 🔍 Fetch DEX Prices
 async fn fetch_price(
