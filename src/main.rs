@@ -1,25 +1,33 @@
+///Read Me in footer
 use ethers::prelude::*;
 use ethers::providers::{Provider, Ws, StreamExt};
 use ethers::utils::format_ether;
-use std::sync::Arc;
-use tokio::sync::Semaphore; //use semaphore to limit the number of concurrent requests 500 per second for Infura
-use tokio;
-use log::{info, warn, error, debug};
-use log::LevelFilter; //declare here so that we can overwrite in command line
-use std::fs::OpenOptions;
-use env_logger::{Builder, Target};
+use ethers::types::{Transaction, H256};
 use ethers::abi::{AbiParser, Abi, Token};
 use ethers::types::{Bytes, U256};
+
+use std::sync::Arc;
+use std::error::Error;
 use std::collections::HashSet;
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::fs::OpenOptions;
+use std::io::{self, Write}; // Required for flushing stdout
+
+use tokio;
+use tokio::sync::Semaphore; //use semaphore to limit the number of concurrent requests 500 per second for Infura
+use tokio::sync::OwnedSemaphorePermit;
+use tokio::time::{sleep, Duration};
+
+use log::{info, warn, error, debug};
+use log::LevelFilter; //declare here so that we can overwrite in command line
+use env_logger::{Builder, Target};
+
 use reqwest;
 use serde_json::Value;
-use std::error::Error;
 
-//use retry::{retry_async, delay::Exponential};
-//use retry::OperationResult;
-use ethers::types::{Transaction, H256};
-use tokio::time::{sleep, Duration};
+// Global counters
+static API_TX_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -83,15 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48".parse().unwrap(), // USDC
         "0x6b175474e89094c44da98b954eedeac495271d0f".parse().unwrap(), // DAI
     ]);
-
-    /* ======== Subscribe to pending transactions
-	•	What It Does: This connects to the Ethereum mempool and listens for all pending transactions (those broadcast but not yet mined into a block).
-	•	Key Points:
-	•	The subscription provides transaction hashes, not full transaction details.
-	•	The subscription stream should continue indefinitely, feeding new transaction hashes as they appear.
-    =========== */
-    let mut stream = provider.subscribe_pending_txs().await?;
-
+    // Define the list of DEX router addresses
     let dex_groups = vec![
         ("Uniswap", vec![
             "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse().unwrap(), // Uniswap V2
@@ -101,12 +101,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse().unwrap() // SushiSwap
         ]),
     ];
+    /* ======== Subscribe to pending transactions
+	•	What It Does: This connects to the Ethereum mempool and listens for all pending transactions (those broadcast but not yet mined into a block).
+	•	Key Points:
+	•	The subscription provides transaction hashes, not full transaction details.
+	•	The subscription stream should continue indefinitely, feeding new transaction hashes as they appear.
+    =========== */
+    let mut stream = provider.subscribe_pending_txs().await?;
+    // Initialize the number of hash processsed
+    Let mut hash_count = 0;       
 
     debug!("📡 Fetching valid trading pairs from Binance...");
     let valid_pairs = fetch_valid_pairs().await?;
 
+     // Spawn a task to periodically print the counter
+     tokio::spawn(async move {
+        loop {
+            print!("\rAPI Transactions: {}", API_TX_COUNT.load(Ordering::SeqCst));
+            io::stdout().flush().unwrap(); // Ensure the line updates immediately
+            sleep(Duration::from_secs(60)).await;
+        }
+    });
+
     while let Some(tx_hash) = stream.next().await {
-        debug!("==== Rcvd tx with hash: {:?}", tx_hash);
+        debug!("Tx Hash: {:?}",tx_hash); 
+        hash_count += 1; 
+        print!("\rHash#: {}", hash_count);
+        API_TX_COUNT.fetch_add(1, Ordering::SeqCst);
+        // Flush the output to ensure it appears immediately
+        io::stdout().flush().unwrap();
         /* ========
             •	What It Does:
                 For every pending transaction hash received from the mempool, the bot tries to fetch the full transaction details using get_transaction.
@@ -123,8 +146,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Some(to) = transaction.to {
                 
                 if let Some((detected_dex_name, _)) = dex_groups.iter().find(|(_, addresses)| addresses.contains(&to)) {
-                    info!("++ DEX TX Hash: {:?}", tx_hash);
-                    info!("DEX  : {} (Address: {:?})", detected_dex_name, to);
+                    info!("++Listed DEX Router found!: {} (Address: {:?})", detected_dex_name, to);
+                    info!("Hash : {:?}", tx_hash);
                     info!("From : {:?}", transaction.from);
                     info!("To   : {:?}", transaction.to);
                     let gas_price = transaction.gas_price.map(|g| ethers::utils::format_units(g, "gwei").unwrap());
@@ -483,8 +506,8 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
     •	Network Congestion: The Ethereum network is congested, and the transaction is stuck in the mempool.
     •	To handle these issues, the bot retries fetching the transaction up to five times with exponential backoff.
     ===========
-    Recommended: 4 max_retries, 5000ms initial delay (5 second)
-    4 retries with exponential backoff (5s, 10s, 20s, 40s) because if the transaction is not found after 3 retries, it’s likely not going to be mined. 
+    Recommended: 4 max_retries, 2000ms initial delay 
+    4 retries with exponential backoff (2,4,6,8) because if the transaction is not found after 3 retries, it’s likely not going to be mined. 
     Average time for a block to processed in Ethereum is 13 seconds.
     ===========
     Future if we want to ensure we dont miss any transaction, we can use higher retry count 
@@ -493,13 +516,16 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limiter: Arc<Semaphore>) -> Option<Transaction> {
     let max_retries = 4; // Maximum number of retries 
     let mut attempt = 0;
-    let mut delay = Duration::from_millis(50); // Initial delay
+    let mut delay = Duration::from_millis(2000); // Initial delay
 
     // Acquire a permit from the rate limiter
-    let _permit = rate_limiter.acquire().await.unwrap();
+    let permit: OwnedSemaphorePermit = rate_limiter.clone().acquire_owned().await.unwrap();
+    // Enforce spacing (2ms per request for 500 requests/sec)
+    sleep(Duration::from_millis(2)).await;
 
     while attempt < max_retries {
         attempt += 1;
+        API_TX_COUNT.fetch_add(1, Ordering::SeqCst);
 
         match provider.get_transaction(tx_hash).await {
             Ok(Some(tx)) => {
@@ -519,12 +545,10 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
                 );
             }
         }
-
-        // Wait before retrying
         sleep(delay).await;
-        delay *= 2; // Exponential backoff
+        delay *= 2;
     }
-
+    drop(permit);
     debug!("Failed to fetch transaction after {} attempts", max_retries);
     None
 }
@@ -533,12 +557,12 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
 async fn fetch_price(
     provider: &Arc<Provider<Ws>>,
     router: Address,
-
     call_data: Vec<u8>,
     dex_name: &str,
 ) -> Option<U256> {
     info!("📞 Fetching price from {}...", dex_name);
-
+    API_TX_COUNT.fetch_add(1, Ordering::SeqCst);
+    
     let tx = TransactionRequest::new()
         .to(router)
         .data(call_data)
