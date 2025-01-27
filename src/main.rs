@@ -101,12 +101,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse().unwrap() // SushiSwap
         ]),
     ];
-    /* ======== Subscribe to pending transactions
-	•	What It Does: This connects to the Ethereum mempool and listens for all pending transactions (those broadcast but not yet mined into a block).
-	•	Key Points:
-	•	The subscription provides transaction hashes, not full transaction details.
-	•	The subscription stream should continue indefinitely, feeding new transaction hashes as they appear.
-    =========== */
+/* ======== Subscribe to pending transactions
+•	What It Does: This connects to the Ethereum mempool and listens for all pending transactions (those broadcast but not yet mined into a block).
+•	Key Points:
+•	The subscription provides transaction hashes, not full transaction details.
+•	The subscription stream should continue indefinitely, feeding new transaction hashes as they appear.
+=========== */
     let mut stream = provider.subscribe_pending_txs().await?;
     // Initialize the number of hash processsed
     let mut hash_count = 0;       
@@ -114,20 +114,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     debug!("📡 Fetching valid trading pairs from Binance...");
     let valid_pairs = fetch_valid_pairs().await?;
 
-     // Spawn a task to periodically print the counter
-     tokio::spawn(async move {
+    // Spawn a task to periodically print the counter - this was overlapping the hashcount print.
+    /* 
+    tokio::spawn(async move {
         loop {
-            print!("\r            | API Transactions: {}", API_TX_COUNT.load(Ordering::SeqCst));
+            print!("\r            | API Tx: {}", API_TX_COUNT.load(Ordering::SeqCst));
             io::stdout().flush().unwrap(); // Ensure the line updates immediately
-            sleep(Duration::from_secs(60)).await;
+            sleep(Duration::from_secs(300)).await;
         }
     });
-
+*/
     while let Some(tx_hash) = stream.next().await {
         debug!("Tx Hash: {:?}",tx_hash); 
         hash_count += 1; 
-        print!("\rHash#: {}", hash_count);
-        API_TX_COUNT.fetch_add(1, Ordering::SeqCst);
+        //Tx only counts fetch_transaction and fetch_price
+        print!("\rHash#: {} | Tx#", hash_count, API_TX_COUNT.load(Ordering::SeqCst)); 
+
         // Flush the output to ensure it appears immediately
         io::stdout().flush().unwrap();
         /* ========
