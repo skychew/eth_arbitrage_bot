@@ -532,7 +532,7 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limiter: Arc<Semaphore>) -> Option<Transaction> {
     let max_retries = 4; // Maximum number of retries 
     let mut attempt = 0;
-    let mut delay = Duration::from_millis(10); // Initial delay is small so we dont miss transaction and it goes out of the pending block.
+    let mut delay = Duration::from_millis(1000); // Initial delay is small so we dont miss transaction and it goes out of the pending block.
 
     // Acquire a permit from the rate limiter
     let permit: OwnedSemaphorePermit = rate_limiter.clone().acquire_owned().await.unwrap();
