@@ -36,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
 
     // Maximum 500 requests per second for Infura
-    let rate_limiter = Adrc::new(Semaphore::new(498)); 
+    let rate_limiter = Arc::new(Semaphore::new(498)); 
 
     // Initialize logging
     let log_file = OpenOptions::new()
