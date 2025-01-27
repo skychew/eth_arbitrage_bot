@@ -29,6 +29,10 @@ use serde_json::Value;
 // Global counters
 static API_TX_COUNT: AtomicUsize = AtomicUsize::new(0);
 static API_TX_FAIL_COUNT: AtomicUsize = AtomicUsize::new(0);
+static RETRY_COUNT: AtomicUsize = AtomicUsize::new(0);
+static DROPPED_COUNT: AtomicUsize = AtomicUsize::new(0);
+static MINED_COUNT: AtomicUsize = AtomicUsize::new(0);
+static REVERTED_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -129,7 +133,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         debug!("Tx Hash: {:?}",tx_hash); 
         hash_count += 1; 
         //Tx only counts fetch_transaction and fetch_price
-        print!("\rHash#: {} | Tx#: {} | Fail#: {}", hash_count, API_TX_COUNT.load(Ordering::SeqCst), API_TX_FAIL_COUNT.load(Ordering::SeqCst)); 
+        print!("\rHash#: {} | Tx#: {} | Fail#: {} | Retry#: {} | Dropped#: {} | Mined#: {} | Reverted#: {}", hash_count, 
+        API_TX_COUNT.load(Ordering::SeqCst), 
+        API_TX_FAIL_COUNT.load(Ordering::SeqCst),
+        RETRY_COUNT.load(Ordering::SeqCst),
+        DROPPED_COUNT.load(Ordering::SeqCst), 
+        MINED_COUNT.load(Ordering::SeqCst), 
+        REVERTED_COUNT.load(Ordering::SeqCst)
+    ); 
 
         // Flush the output to ensure it appears immediately
         io::stdout().flush().unwrap();
@@ -519,7 +530,7 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limiter: Arc<Semaphore>) -> Option<Transaction> {
     let max_retries = 4; // Maximum number of retries 
     let mut attempt = 0;
-    let mut delay = Duration::from_millis(100); // Initial delay is small so we dont miss transaction and it goes out of the pending block.
+    let mut delay = Duration::from_millis(10); // Initial delay is small so we dont miss transaction and it goes out of the pending block.
 
     // Acquire a permit from the rate limiter
     let permit: OwnedSemaphorePermit = rate_limiter.clone().acquire_owned().await.unwrap();
@@ -527,11 +538,13 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
     sleep(Duration::from_millis(2)).await;
 
     while attempt < max_retries {
-        attempt += 1;
         API_TX_COUNT.fetch_add(1, Ordering::SeqCst);
 
         match provider.get_transaction(tx_hash).await {
             Ok(Some(tx)) => {
+                if(attempt>0){
+                    RETRY_COUNT.fetch_add(1, Ordering::SeqCst);//see if retry actually works.
+                }     
                 debug!("Transaction fetched successfully on attempt {}", attempt);
                 return Some(tx);
             }
@@ -550,7 +563,25 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
         }
         sleep(delay).await;
         delay *= 2;
+        attempt += 1;
     }
+
+    info!("❌ Transaction might not be in mempool. Checking receipt...");
+
+    let receipt = provider.get_transaction_receipt(tx_hash).await?;
+    if let Some(receipt) = receipt {
+        if receipt.status == Some(0.into()) {
+            info!("❌ Transaction failed: execution reverted.");
+            REVERTED_COUNT.fetch_add(1, Ordering::SeqCst);
+        } else {
+            info!("✅ Transaction was mined successfully: {:?}", receipt);
+            MINED_COUNT.fetch_add(1, Ordering::SeqCst);
+        }
+    } else {
+        info!("❌ Transaction not found on-chain. Likely dropped.");
+        DROPPED_COUNT.fetch_add(1, Ordering::SeqCst);
+    }
+
     drop(permit);
     API_TX_FAIL_COUNT.fetch_add(1, Ordering::SeqCst);
     debug!("Failed to fetch transaction after {} attempts", max_retries);
