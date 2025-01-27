@@ -29,6 +29,7 @@ use serde_json::Value;
 // Global counters
 static API_TX_COUNT: AtomicUsize = AtomicUsize::new(0);
 static API_TX_FAIL_COUNT: AtomicUsize = AtomicUsize::new(0);
+static SUCCESS_COUNT: AtomicUsize = AtomicUsize::new(0);
 static RETRY_COUNT: AtomicUsize = AtomicUsize::new(0);
 static DROPPED_COUNT: AtomicUsize = AtomicUsize::new(0);
 static MINED_COUNT: AtomicUsize = AtomicUsize::new(0);
