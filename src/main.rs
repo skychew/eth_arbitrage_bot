@@ -128,7 +128,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         debug!("Tx Hash: {:?}",tx_hash); 
         hash_count += 1; 
         //Tx only counts fetch_transaction and fetch_price
-        print!("\rHash#: {} | Tx#", hash_count, API_TX_COUNT.load(Ordering::SeqCst)); 
+        print!("\rHash#: {} | Tx#: {}", hash_count, API_TX_COUNT.load(Ordering::SeqCst)); 
 
         // Flush the output to ensure it appears immediately
         io::stdout().flush().unwrap();
