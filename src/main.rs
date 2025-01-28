@@ -145,7 +145,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         DROPPED_COUNT.load(Ordering::SeqCst), 
         MINED_COUNT.load(Ordering::SeqCst), 
         REVERTED_COUNT.load(Ordering::SeqCst),
-        RCPERR_COUNT_COUNT.load(Ordering::SeqCst),
+        RCPERR_COUNT.load(Ordering::SeqCst),
     ); 
 
         // Flush the output to ensure it appears immediately
