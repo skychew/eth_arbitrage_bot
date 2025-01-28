@@ -534,9 +534,9 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
     and lower delay time if we want to compete for arbitrage opportunities but we will need more transaction credits.
  */
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limiter: Arc<Semaphore>) -> Option<Transaction> {
-    let max_retries = 5; // Maximum number of retries 
+    let max_retries = 4; // Maximum number of retries 
     let mut attempt = 0;
-    let mut delay = Duration::from_millis(100); // Initial delay is small so we dont miss transaction and it goes out of the pending block.
+    let mut delay = Duration::from_millis(40); // Initial delay is small so we dont miss transaction and it goes out of the pending block.
     let mut eror = 0;
     let mut rcpt = 0;
     let permit: OwnedSemaphorePermit = rate_limiter.clone().acquire_owned().await.unwrap();
@@ -575,7 +575,7 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
             }
         }
         sleep(delay).await;
-        delay *= 3;
+        delay *= 5;
         attempt += 1;
     }
     debug!("Failed to fetch transaction after {} attempts", max_retries);
