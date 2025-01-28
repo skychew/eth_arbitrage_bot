@@ -35,7 +35,7 @@ static RETRY_ERR_COUNT: AtomicUsize = AtomicUsize::new(0);
 static DROPPED_COUNT: AtomicUsize = AtomicUsize::new(0);
 static MINED_COUNT: AtomicUsize = AtomicUsize::new(0);
 static REVERTED_COUNT: AtomicUsize = AtomicUsize::new(0);
-static RCPERR_COUNT_COUNT: AtomicUsize = AtomicUsize::new(0);
+static RCPERR__COUNT: AtomicUsize = AtomicUsize::new(0);
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
