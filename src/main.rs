@@ -28,6 +28,8 @@ use serde_json::Value;
 
 // Global counters
 static API_TX_COUNT: AtomicUsize = AtomicUsize::new(0);
+static REVIEW_COUNT: AtomicUsize = AtomicUsize::new(0);
+static ARBITRAGE_COUNT: AtomicUsize = AtomicUsize::new(0);
 static API_TX_FAIL_COUNT: AtomicUsize = AtomicUsize::new(0);
 static SUCCESS_COUNT: AtomicUsize = AtomicUsize::new(0);
 static RETRY_COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -136,7 +138,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         debug!("Tx Hash: {:?}",tx_hash); 
         hash_count += 1; 
         //Tx only counts fetch_transaction and fetch_price
-        print!("\rHash#: {} | Tx#: {} | Fail#: {} | Success#: {} | Retry#: {} | RetryErr#: {} | Dropped#: {} | Mined#: {} | Reverted#: {}, RcpErr#: {}", hash_count, 
+        print!("\rHash#: {} | Review#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | Scs#: {} | Retry#: {} | RtryErr#: {} | Drop#: {} | Mined#: {} | Rvrted#: {}, RcpErr#: {}", 
+        hash_count, 
+        REVIEW_COUNT.load(Ordering::SeqCst), 
+        ARBITRAGE_COUNT.load(Ordering::SeqCst), 
         API_TX_COUNT.load(Ordering::SeqCst), 
         API_TX_FAIL_COUNT.load(Ordering::SeqCst),
         SUCCESS_COUNT.load(Ordering::SeqCst),
@@ -148,8 +153,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         RCPERR_COUNT.load(Ordering::SeqCst),
     ); 
 
-        // Flush the output to ensure it appears immediately
-        io::stdout().flush().unwrap();
+    // Flush the output to ensure it appears immediately
+    io::stdout().flush().unwrap();
         /* ========
             •	What It Does:
                 For every pending transaction hash received from the mempool, the bot tries to fetch the full transaction details using get_transaction.
@@ -164,8 +169,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         */
         if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash, rate_limiter.clone()).await {
             if let Some(to) = transaction.to {
-                
+                REVIEW_COUNT.fetch_add(1, Ordering::SeqCst);
                 if let Some((detected_dex_name, _)) = dex_groups.iter().find(|(_, addresses)| addresses.contains(&to)) {
+                    ARBITRAGE_COUNT.fetch_add(1, Ordering::SeqCst);
                     info!("++Listed DEX Router found!: {} (Address: {:?})", detected_dex_name, to);
                     info!("Hash : {:?}", tx_hash);
                     info!("From : {:?}", transaction.from);
