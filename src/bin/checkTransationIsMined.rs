@@ -1,9 +1,12 @@
 use ethers::prelude::*;
 use std::time::Duration;
 use std::sync::Arc;
+use dotenv::dotenv;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Load environment variables
+    dotenv().ok();
     // Connect to Ethereum provider
     let ws_url = std::env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
     println!("================= Connecting to Eth WebSocket: {}", ws_url);
