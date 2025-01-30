@@ -1,5 +1,6 @@
 use ethers::prelude::*;
 use std::time::Duration;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
