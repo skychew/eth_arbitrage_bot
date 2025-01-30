@@ -11,13 +11,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("✅ Eth Node Connected, listening...");
     let mut stream = provider.subscribe_pending_txs().await?;
     
-    // Replace with the transaction hash you want to monitor
-    let tx_hash: H256 = "0xYourTransactionHash".parse().unwrap();
-    
-    println!("🚀 Monitoring transaction {} for confirmation...", tx_hash);
-
     while let Some(tx_hash) = stream.next().await {
-        println!("++Tx hash: {:?}", tx_hash);
+        println!("🚀 Monitoring transaction {} for confirmation...", tx_hash);
         loop {
             if let Some(tx) = provider.get_transaction(tx_hash).await? {
                 match (tx.block_hash) {
