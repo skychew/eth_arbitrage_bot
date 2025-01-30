@@ -564,7 +564,6 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
     let mut attempt = 0;
     let mut delay = Duration::from_millis(40); // Initial delay is small so we dont miss transaction and it goes out of the pending block.
     let mut eror = 0;
-    let mut rcpt = 0;
     let permit: OwnedSemaphorePermit = rate_limiter.clone().acquire_owned().await.unwrap();
     // Enforce spacing (2ms per request for 500 requests/sec)
     sleep(Duration::from_millis(2)).await;
