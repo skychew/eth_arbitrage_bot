@@ -1,7 +1,7 @@
 use ethers::prelude::*;
 use std::{sync::Arc, time::Duration};
 use dotenv::dotenv;
-use tokio_stream::StreamExt;
+//use tokio_stream::StreamExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -43,7 +43,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             // Delay of 10 seconds before the next check
-            tokio::time::sleep(Duration::from_secs(10)).await;
+            tokio::time::sleep(Duration::from_secs(20)).await;
         }
     }
 
