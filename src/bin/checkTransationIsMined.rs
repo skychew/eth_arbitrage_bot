@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("🚀 Monitoring transaction {} for confirmation...", tx_hash);
         loop {
             if let Some(tx) = provider.get_transaction(tx_hash).await? {
-                match (tx.block_hash) {
+                match tx.block_hash {
                     (Some(block_hash)) => {
                         println!("🔗 Block hash: {:?}", block_hash);
                         break;
