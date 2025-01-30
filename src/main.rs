@@ -34,10 +34,10 @@ static API_TX_FAIL_COUNT: AtomicUsize = AtomicUsize::new(0);
 static SUCCESS_COUNT: AtomicUsize = AtomicUsize::new(0);
 static RETRY_COUNT: AtomicUsize = AtomicUsize::new(0);
 static RETRY_ERR_COUNT: AtomicUsize = AtomicUsize::new(0);
-static DROPPED_COUNT: AtomicUsize = AtomicUsize::new(0);
+//static DROPPED_COUNT: AtomicUsize = AtomicUsize::new(0);
 static MINED_COUNT: AtomicUsize = AtomicUsize::new(0);
-static REVERTED_COUNT: AtomicUsize = AtomicUsize::new(0);
-static RCPERR_COUNT: AtomicUsize = AtomicUsize::new(0);
+//static REVERTED_COUNT: AtomicUsize = AtomicUsize::new(0);
+//static RCPERR_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -138,7 +138,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         debug!("Tx Hash: {:?}",tx_hash); 
         hash_count += 1; 
         //Tx only counts fetch_transaction and fetch_price
-        print!("\rHash#: {} | Review#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | Scs#: {} | Retry#: {} | RtryErr#: {} | Drop#: {} | Mined#: {} | Rvrted#: {}, RcpErr#: {}", 
+        print!("\rHash#: {} | Review#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | Mined#: {}", 
         hash_count, 
         REVIEW_COUNT.load(Ordering::SeqCst), 
         ARBITRAGE_COUNT.load(Ordering::SeqCst), 
@@ -147,14 +147,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         SUCCESS_COUNT.load(Ordering::SeqCst),
         RETRY_COUNT.load(Ordering::SeqCst),
         RETRY_ERR_COUNT.load(Ordering::SeqCst),
-        DROPPED_COUNT.load(Ordering::SeqCst), 
         MINED_COUNT.load(Ordering::SeqCst), 
-        REVERTED_COUNT.load(Ordering::SeqCst),
-        RCPERR_COUNT.load(Ordering::SeqCst),
-    ); 
+     ); 
 
-    // Flush the output to ensure it appears immediately
-    io::stdout().flush().unwrap();
+        // Flush the output to ensure it appears immediately
+        io::stdout().flush().unwrap();
         /* ========
             •	What It Does:
                 For every pending transaction hash received from the mempool, the bot tries to fetch the full transaction details using get_transaction.
@@ -524,14 +521,36 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
 }
 /* ======== Fetch Full Transaction Details
 	•	What It Does: 
-        For every pending transaction hash received from the mempool, the bot tries to fetch the full transaction details using get_transaction.
+        For every pending transaction hash received from the mempool or blockchain, the bot tries to fetch the full transaction details using get_transaction. Get transaction returns:
+
+        When you fetch transaction data using get_transaction(hash) from an Ethereum node or using libraries like ethers-rs, web3.py, or other JSON-RPC clients, the returned transaction object (tx) typically includes the following fields:
+
+    General Format of an Ethereum Transaction (eth_getTransactionByHash)
+    Field	    Description
++blockHash	    Hash of the block containing this transaction (null if pending).
++blockNumber	Block number where this transaction was included (null if pending).
++from	        Address of the sender.
++to	            Address of the receiver or contract (null for contract creation).
++gas	        Gas limit provided by the sender.
++gasPrice	    Gas price in wei.
++hash	        Hash of the transaction.
++input	        The data payload (used for contract calls or empty for ETH transfers).
++nonce	        Transaction count of the sender before this transaction.
++r	            Signature part R (used in transaction signing).
++s	            Signature part S (used in transaction signing).
++v	            Recovery id for the signature.
++transactionIndex	Index of the transaction within the block (null if pending).
++value	        Amount of ETH transferred in wei (0 for contract calls).
+
 	•	Issue Observed:
 	•	Sometimes the fetched transaction is missing (Ok(None)), likely due to one of the following:
 	•	Propagation Delay: The transaction hasn’t fully propagated to the node you’re connected to.
 	•	Dropped Transactions: The transaction was dropped due to low gas fees or replacement.
 	•	Rate Limiting/Provider Issues: The provider (e.g., Infura) may throttle requests if you’re exceeding its rate limits.
     •	Network Congestion: The Ethereum network is congested, and the transaction is stuck in the mempool.
+    •	Transaction changed nonce stays the same but the transaction is replaced so the hash has changed.
     •	To handle these issues, the bot retries fetching the transaction up to five times with exponential backoff.
+
     ===========
     Recommended: 4 max_retries, 2000ms initial delay 
     4 retries with exponential backoff (2,4,6,8) because if the transaction is not found after 3 retries, it’s likely not going to be mined. 
@@ -541,7 +560,7 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
     and lower delay time if we want to compete for arbitrage opportunities but we will need more transaction credits.
  */
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limiter: Arc<Semaphore>) -> Option<Transaction> {
-    let max_retries = 5; // Maximum number of retries 
+    let max_retries = 6; // Maximum number of retries 
     let mut attempt = 0;
     let mut delay = Duration::from_millis(40); // Initial delay is small so we dont miss transaction and it goes out of the pending block.
     let mut eror = 0;
@@ -563,7 +582,12 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
                     } else {
                         RETRY_ERR_COUNT.fetch_add(1, Ordering::SeqCst);//see if retry actually works.
                     }
-                }     
+                }
+                match tx.block_hash {
+                    Some(block_hash) => {
+                        MINED_COUNT.fetch_add(1, Ordering::SeqCst);
+                    }
+                }  
                 debug!("Transaction fetched successfully on attempt {}", attempt);
                 return Some(tx);
             }
@@ -580,44 +604,17 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
                 );
                 eror+=1;
             }
+
         }
         sleep(delay).await;
-        delay *= 5;
+        delay *= 6;
         attempt += 1;
     }
     debug!("Failed to fetch transaction after {} attempts", max_retries);
-    // Only after max retries is the transaction considered not found in the mempool
-    if attempt == max_retries {
-        debug!("❌ Transaction might not be in mempool. Checking receipt...");
-        // Handle the Result from get_transaction_receipt
-        match provider.get_transaction_receipt(tx_hash).await {
-            Ok(Some(receipt)) => {
-                if receipt.status == Some(0.into()) {
-                    debug!("❌ Transaction failed: execution reverted.");
-                    REVERTED_COUNT.fetch_add(1, Ordering::SeqCst);
-                    rcpt+=1;
-                } else {
-                    debug!("✅ Transaction was mined successfully: {:?}", receipt);
-                    MINED_COUNT.fetch_add(1, Ordering::SeqCst);
-                    rcpt+=1;
-                }
-            }
-            Ok(None) => {
-                debug!("❌ Transaction not found on-chain. Likely dropped.");
-                DROPPED_COUNT.fetch_add(1, Ordering::SeqCst);
-                rcpt+=1;
-            }
-            Err(e) => {   
-                debug!("❌ Error fetching receipt: {:?}", e);
-                RCPERR_COUNT.fetch_add(1, Ordering::SeqCst);
-                rcpt+=1;
-            }
-        }
-    }
+
     drop(permit);
-    if rcpt == 0 {
-        API_TX_FAIL_COUNT.fetch_add(1, Ordering::SeqCst);
-    }
+    API_TX_FAIL_COUNT.fetch_add(1, Ordering::SeqCst);
+
     None
 }
 /// 🔍 Fetch DEX Prices
