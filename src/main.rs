@@ -231,14 +231,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             if valid_pairs.contains(&symbol) {
                                 match fetch_binance_price(&symbol).await {
                                     Ok(price) => {
-                                        println!("💱 Current Price for {}: ${:.2}", symbol, price);
+                                        info!("💱 Current Price for {}: ${:.2}", symbol, price);
                                     }
                                     Err(e) => {
-                                        eprintln!("❌ Error fetching price for {}: {}", symbol, e);
+                                        error!("❌ Error fetching price for {}: {}", symbol, e);
                                     }
                                 }
                             } else {
-                                println!("❌ Pair {} is not valid on Binance.", symbol);
+                                error!("❌ Pair {} is not valid on Binance.", symbol);
                             }
 
                             // Perform arbitrage simulation if we have at least two prices
