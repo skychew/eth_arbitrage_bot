@@ -5,10 +5,10 @@ use std::time::Duration;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Ethereum provider
     let ws_url = std::env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
-    info!("================= Connecting to Eth WebSocket: {}", ws_url);
+    println!("================= Connecting to Eth WebSocket: {}", ws_url);
     let provider = Provider::<Ws>::connect(ws_url).await?;
     let provider = Arc::new(provider);
-    info!("✅ Eth Node Connected, listening...");
+    println!("✅ Eth Node Connected, listening...");
     let mut stream = provider.subscribe_pending_txs().await?;
     
     while let Some(tx_hash) = stream.next().await {
