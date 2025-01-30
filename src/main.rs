@@ -575,19 +575,21 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
         match provider.get_transaction(tx_hash).await {
             Ok(Some(tx)) => {
                 if attempt == 0 {
+                    //success on first attempt
                     SUCCESS_COUNT.fetch_add(1, Ordering::SeqCst);
                 }else{
                     if eror == 0{
-                        RETRY_COUNT.fetch_add(1, Ordering::SeqCst);//see if retry actually works.
+                        //see if retry actually works.
+                        RETRY_COUNT.fetch_add(1, Ordering::SeqCst);
                     } else {
-                        RETRY_ERR_COUNT.fetch_add(1, Ordering::SeqCst);//see if retry actually works.
+                        //see if after error there was a success
+                        RETRY_ERR_COUNT.fetch_add(1, Ordering::SeqCst);
                     }
                 }
-                match tx.block_hash {
-                    Some(block_hash) => {
-                        MINED_COUNT.fetch_add(1, Ordering::SeqCst);
-                    }
-                }  
+                // Check if the transaction is mined
+                if tx.block_hash.is_some() {
+                    MINED_COUNT.fetch_add(1, Ordering::SeqCst);
+                }
                 debug!("Transaction fetched successfully on attempt {}", attempt);
                 return Some(tx);
             }
