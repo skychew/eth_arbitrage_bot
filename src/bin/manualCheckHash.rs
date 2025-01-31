@@ -696,6 +696,11 @@ async fn fetch_price(
     //check if there are reserves
     let (reserve0, reserve1) = get_reserves_uniswap_v2(pair_address, provider.clone()).await.ok()?;
 
+    println!("check fetch_price");
+    println!("router: {:?}", router);
+    println!("call_data: {:?}", call_data);
+
+    //check if reserves are valid
     let tx = TransactionRequest::new()
         .to(router)
         .data(call_data)
