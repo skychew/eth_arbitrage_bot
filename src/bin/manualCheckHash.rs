@@ -683,7 +683,7 @@ async fn fetch_price(
 
     let pair_address = match get_uniswap_v2_pair(token_in, token_out, provider.clone()).await {
         Ok(address) => {
-            println!("✅ Uniswap V2 pair address: {:?}", address);
+            println!("✅ Uniswap V2 pair address: {:?}", pair_address);
             address
         }
         Err(err) => {
