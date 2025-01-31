@@ -38,7 +38,7 @@ static MINED_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 /// Uniswap V3 Quoter contract address
 const UNISWAP_V3_QUOTER: &str = "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6";
-const DEFAULT = None;
+const DEFAULT: Option<u32> = None;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
