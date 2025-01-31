@@ -698,7 +698,7 @@ async fn fetch_price(
 
     println!("check fetch_price");
     // Proper EIP-55 checksum format
-    println!("Checksum format: {}", ethers::types::Address::from(address));
+    println!("Checksum format: {}", ethers::types::Address::from(router));
     println!("Call Data (Hex): {:?}", hex::encode(&call_data));
 
     let tx = TransactionRequest::new()
