@@ -106,11 +106,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Define the list of DEX router addresses
     let dex_groups = vec![
         ("Uniswap", vec![
-            "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse().unwrap(), // Uniswap V2
-            "0xe592427a0aece92de3edee1f18e0157c05861564".parse().unwrap()  // Uniswap V3
+            ("0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse::<H160>().unwrap(), "Uniswap V2"),
+            ("0xe592427a0aece92de3edee1f18e0157c05861564".parse::<H160>().unwrap(), "Uniswap V3"),
         ]),
         ("SushiSwap", vec![
-            "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse().unwrap() // SushiSwap
+            ("0xd9e1ce17f2641f24aE83637ab66a2cca9c378b9f".parse::<H160>().unwrap(), "SushiSwap"),
         ]),
     ];
 /* ======== Subscribe to pending transactions
@@ -145,7 +145,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Tx Hash: {:?}",tx_hash); 
         hash_count += 1; 
         //Tx only counts fetch_transaction and fetch_price
-        print!("\rHash#: {} | Review#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
+       // print!("\rHash#: {} | Review#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
         hash_count, 
         REVIEW_COUNT.load(Ordering::SeqCst), 
         ARBITRAGE_COUNT.load(Ordering::SeqCst), 
@@ -224,9 +224,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             */
                            
                             let mut prices = vec![];
-                            for (dex_name, dex_addresses) in &dex_groups {
-                                for dex_address in dex_addresses {
-                                    if let Some(price) = fetch_price(&provider, *dex_address, dex_name, token_in, token_out, amount_in, DEFAULT).await {
+                            for (group_name, dexes) in &dex_groups {
+                                for (dex_address, dex_name) in dexes {
+                                    if let Some(price) = fetch_price(&provider, *dex_address, dex_name, token_in, token_out, amount_in, None).await {
                                         prices.push((dex_name.to_string(), price));
                                     }
                                 }
