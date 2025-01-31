@@ -1,6 +1,6 @@
 ///Read Me in footer
 use ethers::prelude::*;
-use ethers::providers::{Provider, Ws, StreamExt};
+use ethers::providers::{Provider, Ws};
 use ethers::utils::format_ether;
 use ethers::types::{Transaction, H256};
 use ethers::abi::{AbiParser, Abi, Token};
@@ -38,6 +38,7 @@ static MINED_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 /// Uniswap V3 Quoter contract address
 const UNISWAP_V3_QUOTER: &str = "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6";
+const DEFAULT = None;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -183,7 +184,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     info!("Gas Price: {} Gwei", gas_price.unwrap_or_else(|| "unknown".to_string()));
                     info!("AMT ETH: {} ETH", format_ether(transaction.value));
 
-                    /// Decode transaction input
+                    // Decode transaction input
                     if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
                         let token_in_name = get_token_name(&token_in);
                         let token_out_name = get_token_name(&token_out);
@@ -224,7 +225,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let mut prices = vec![];
                             for (dex_name, dex_addresses) in &dex_groups {
                                 for dex_address in dex_addresses {
-                                    if let Some(price) = fetch_price(&provider, dex_name,token_in,token_out,amount_in).await {
+                                    if let Some(price) = fetch_price(&provider, dex_name, token_in, token_out, amount_in, DEFAULT).await {
                                         prices.push((dex_name.to_string(), price));
                                     }
                                 }
