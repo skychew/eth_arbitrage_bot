@@ -670,7 +670,9 @@ async fn fetch_price(
     // Replace quoter address instead of router address for uniswap v3
     let router = if dex_name == "Uniswap V3" {
         UNISWAP_V3_QUOTER.parse::<H160>().unwrap()
-    };
+    } else {
+        router
+    }
 
     let tx = TransactionRequest::new()
         .to(router)
