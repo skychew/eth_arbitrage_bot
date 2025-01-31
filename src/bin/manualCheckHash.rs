@@ -800,7 +800,7 @@ async fn get_uniswap_v2_pair(
     token_out: Address,
     provider: Arc<Provider<Ws>>,
 ) -> Result<Address, Box<dyn std::error::Error>> {
-    let uniswap_v2_factory_abi: Abi = serde_json::from_str(include_str!("../abi/uniswap_v2_factory.json"))?;
+    let uniswap_v2_factory_abi: Abi = serde_json::from_str(include_str!("../../abi/uniswap_v2_factory.json"))?;
     let factory_address = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f".parse::<Address>()?;
     let factory = Contract::new(factory_address, uniswap_v2_factory_abi.clone(), provider);
     let pair_address: Address = factory
