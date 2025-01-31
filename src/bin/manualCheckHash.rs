@@ -681,10 +681,10 @@ async fn fetch_price(
         router
     };
 
-    let pair_address = match get_uniswap_v2_pair(token_in, token_out, provider.clone()).await {
-        Ok(pair_address) => {
-            println!("✅ Uniswap V2 pair address: {:?}", pair_address);
-            pair_address
+    let _pair_address = match get_uniswap_v2_pair(token_in, token_out, provider.clone()).await {
+        Ok(address) => {
+            println!("✅ Uniswap V2 pair address: {:?}", address);
+            address
         }
         Err(err) => {
             println!("❌ Error fetching Uniswap V2 pair: {:?}", err);
