@@ -698,7 +698,7 @@ async fn fetch_price(
 
     println!("check fetch_price");
     // Full checksum format (no truncation)
-    println!("Checksum format (full): {}", Address::from(address).to_string());
+    println!("Checksum format (full): {}", Address::from(router).to_string());
     println!("Call Data (Hex): {:?}", hex::encode(&call_data));
 
     let tx = TransactionRequest::new()
