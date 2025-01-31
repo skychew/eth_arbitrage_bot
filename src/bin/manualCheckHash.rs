@@ -211,7 +211,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let amount_in = U256::from_dec_str("1000000000000000000")?; //replace with hardcode
 
                             // Define call data
-                            
                             /* 
                             let path = vec![Token::Address(token_in), Token::Address(token_out)];
                             let function_selector = hex::decode("d06ca61f")?; // Function selector for getAmountsOut
@@ -221,10 +220,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             ]);
                             let call_data = [function_selector.clone(), encoded_params.clone()].concat();
                             */
+                           
                             let mut prices = vec![];
                             for (dex_name, dex_addresses) in &dex_groups {
                                 for dex_address in dex_addresses {
-                                    if let Some(price) = fetch_price(&provider, dex_name,token_in,token_out,amount_in,fee_tier).await {
+                                    if let Some(price) = fetch_price(&provider, dex_name,token_in,token_out,amount_in).await {
                                         prices.push((dex_name.to_string(), price));
                                     }
                                 }
@@ -635,7 +635,7 @@ async fn fetch_price(
     token_in: Address,
     token_out: Address,
     amount_in: U256,
-    fee_tier: u32,  // Only relevant for Uniswap V3
+    fee_tier: Option<u32>,  // Only relevant for Uniswap V3
 ) -> Option<U256> {
 
     info!("📞 Fetching price from {}...", dex_name);
