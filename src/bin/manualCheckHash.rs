@@ -811,7 +811,7 @@ async fn get_uniswap_v2_pair(
     if pair_address == Address::zero() {
         Err("No pair address found on Uniswap V2.".into())
     } else {
-        Ok(pair_address)
+        Ok("pair exist {}", pair_address)
     }
 }
 
