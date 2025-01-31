@@ -142,10 +142,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .parse()
         .unwrap();
 
-        println!("Tx Hash: {:?}",tx_hash); 
+        println!("Tx Hash: {:?}, Hash#: {}",tx_hash,hash_count); 
         hash_count += 1; 
         //Tx only counts fetch_transaction and fetch_price
- /* 
+ /* */
         print!("\rHash#: {} | Review#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
         hash_count, 
         REVIEW_COUNT.load(Ordering::SeqCst), 
@@ -227,9 +227,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             */
                            
                             let mut prices = vec![];
-                            for (group_name, dexes) in &dex_groups {
+                            for (_group_name, dexes) in &dex_groups {
                                 for (dex_address, dex_name) in dexes {
-                                    if let Some(price) = fetch_price(&provider, *dex_address, dex_name, token_in, token_out, amount_in, None).await {
+                                    if let Some(price) = fetch_price(&provider, *dex_address, dex_name, token_in, token_out, amount_in, DEFAULT).await {
                                         prices.push((dex_name.to_string(), price));
                                     }
                                 }
