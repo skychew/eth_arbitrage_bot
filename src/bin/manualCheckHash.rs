@@ -106,7 +106,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Define the list of DEX router addresses
     let dex_groups = vec![
         ("Uniswap", vec![
-            ("0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse::<H160>().unwrap(), "Uniswap V2"),
+            ("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D".parse::<H160>().unwrap(), "Uniswap V2"),
             ("0xe592427a0aece92de3edee1f18e0157c05861564".parse::<H160>().unwrap(), "Uniswap V3"),
         ]),
         ("SushiSwap", vec![
@@ -700,13 +700,12 @@ async fn fetch_price(
     println!("router: {:?}", router);
     println!("call_data: {:?}", call_data);
 
-    //check if reserves are valid
     let tx = TransactionRequest::new()
         .to(router)
         .data(call_data)
         .gas(U256::from(1_000_000))
         .value(U256::zero());
-
+  
     match provider.call(&tx.into(), None).await {
         Ok(res) => {
             if res.len() >= 32 {
@@ -725,7 +724,7 @@ async fn fetch_price(
     }
 }
 
-// Mapping token addresses to their names
+/// Mapping token addresses to their names
 fn get_token_name(address: &Address) -> String {
     let token_map: HashMap<Address, &str> = HashMap::from([
         ("0x2eaa73bd0db20c64f53febea7b5f5e5bccc7fb8b".parse().unwrap(), "ETH"),
