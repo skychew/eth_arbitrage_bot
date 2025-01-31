@@ -142,8 +142,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .parse()
         .unwrap();
 
+        hash_count += 1; 
         println!("Tx Hash: {:?}, Hash#: {}",tx_hash,hash_count); 
-        //hash_count += 1; 
+        
         //Tx only counts fetch_transaction and fetch_price
  /*
         print!("\rHash#: {} | Review#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
@@ -682,12 +683,12 @@ async fn fetch_price(
 
     let pair_address = match get_uniswap_v2_pair(token_in, token_out, provider.clone()).await {
         Ok(address) => {
-            println!("✅ Uniswap V2 pair address: {:?}", pair_address);
-            address,
+            println!("✅ Uniswap V2 pair address: {:?}", address);
+            address
         }
         Err(err) => {
             println!("❌ Error fetching Uniswap V2 pair: {:?}", err);
-            return; // Skip this iteration if no pair is found
+            return None; // Skip this iteration if no pair is found
         }
     };
 
@@ -799,6 +800,7 @@ async fn get_uniswap_v2_pair(
     token_out: Address,
     provider: Arc<Provider<Http>>,
 ) -> Result<Address, Box<dyn std::error::Error>> {
+    let uniswap_v2_factory_abi: Abi = serde_json::from_str(include_str!("path_to_uniswap_v2_factory_abi.json"))?;
     let factory_address = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f".parse::<Address>()?;
     let factory = Contract::new(factory_address, UNISWAP_V2_FACTORY_ABI.clone(), provider);
     let pair_address: Address = factory
