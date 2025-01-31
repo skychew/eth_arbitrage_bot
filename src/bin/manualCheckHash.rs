@@ -5,6 +5,7 @@ use ethers::utils::format_ether;
 use ethers::types::{Transaction, H256};
 use ethers::abi::{AbiParser, Abi, Token};
 use ethers::types::{Bytes, U256};
+use ethers::types::H160;
 
 use std::sync::Arc;
 use std::error::Error;
@@ -667,11 +668,11 @@ async fn fetch_price(
 
     // Choose appropriate router or quoter address
     let router = if dex_name == "Uniswap V3" {
-        UNISWAP_V3_QUOTER.parse().unwrap()
+        UNISWAP_V3_QUOTER.parse::<H160>().unwrap()
     } else {
         match dex_name {
-            "Uniswap V2" => "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse().unwrap(),
-            "SushiSwap" => "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F".parse().unwrap(),
+            "Uniswap V2" => "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse::<H160>().unwrap(),
+            "SushiSwap" => "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F".parse::<H160>().unwrap(),
             _ => return None,  // Unsupported DEX
         }
     };
