@@ -680,6 +680,17 @@ async fn fetch_price(
         router
     };
 
+    let pair_address = match get_uniswap_v2_pair(token_in, token_out, provider.clone()).await {
+        Ok(address) => {
+            println!("✅ Uniswap V2 pair address: {:?}", pair_address);
+            address,
+        }
+        Err(err) => {
+            println!("❌ Error fetching Uniswap V2 pair: {:?}", err);
+            return; // Skip this iteration if no pair is found
+        }
+    };
+
     let tx = TransactionRequest::new()
         .to(router)
         .data(call_data)
@@ -780,6 +791,25 @@ async fn fetch_valid_pairs() -> Result<HashSet<String>, Box<dyn Error>> {
             response.status()
         )
         .into())
+    }
+}
+
+async fn get_uniswap_v2_pair(
+    token_in: Address,
+    token_out: Address,
+    provider: Arc<Provider<Http>>,
+) -> Result<Address, Box<dyn std::error::Error>> {
+    let factory_address = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f".parse::<Address>()?;
+    let factory = Contract::new(factory_address, UNISWAP_V2_FACTORY_ABI.clone(), provider);
+    let pair_address: Address = factory
+        .method::<_, Address>("getPair", (token_in, token_out))?
+        .call()
+        .await?;
+
+    if pair_address == Address::zero() {
+        Err("No pair address found on Uniswap V2.".into())
+    } else {
+        Ok(pair_address)
     }
 }
 
