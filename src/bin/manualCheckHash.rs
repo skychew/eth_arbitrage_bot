@@ -693,7 +693,7 @@ async fn fetch_price(
     };
 
     //check if there are reserves
-    let (reserve0, reserve1) = get_reserves_v2(pair_address, provider.clone()).await?;
+    let (reserve0, reserve1) = get_reserves_uniswap_v2(pair_address, provider.clone()).await?;
 
     let tx = TransactionRequest::new()
         .to(router)
