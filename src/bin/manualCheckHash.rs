@@ -697,8 +697,8 @@ async fn fetch_price(
     let (_reserve0, _reserve1) = get_reserves_uniswap_v2(pair_address, provider.clone()).await.ok()?;
 
     println!("check fetch_price");
-    // Proper EIP-55 checksum format
-    println!("Checksum format: {}", ethers::types::Address::from(router));
+    // Full checksum format (no truncation)
+    println!("Checksum format (full): {}", Address::from(address).to_string());
     println!("Call Data (Hex): {:?}", hex::encode(&call_data));
 
     let tx = TransactionRequest::new()
