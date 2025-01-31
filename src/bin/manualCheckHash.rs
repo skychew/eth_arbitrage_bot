@@ -697,9 +697,7 @@ async fn fetch_price(
     let (_reserve0, _reserve1) = get_reserves_uniswap_v2(pair_address, provider.clone()).await.ok()?;
 
     println!("check fetch_price");
-    // Full checksum format (no truncation)
-    let full_address = Address::from(router).to_string();
-    println!("Checksum format (full): {}", full_address);
+    println!("router: {:?}", router);
     println!("Call Data (Hex): {:?}", hex::encode(&call_data));
 
     let tx = TransactionRequest::new()
