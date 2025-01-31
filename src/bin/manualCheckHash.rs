@@ -20,7 +20,7 @@ use tokio::sync::Semaphore; //use semaphore to limit the number of concurrent re
 use tokio::sync::OwnedSemaphorePermit;
 use tokio::time::{sleep, Duration};
 
-use log::{info, warn, error, debug};
+//use log::{info, warn, error, debug};
 use log::LevelFilter; //declare here so that we can overwrite in command line
 use env_logger::{Builder, Target};
 
