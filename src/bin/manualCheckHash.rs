@@ -176,7 +176,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             REVIEW_COUNT.fetch_add(1, Ordering::SeqCst);
             if let Some(to) = transaction.to {
                 
-                if let Some((detected_dex_name, _)) = dex_groups.iter().find(|(_, addresses)| addresses.contains(&to)) {
+                if let Some((detected_dex_name, _)) = dex_groups.iter().find(|(_, addresses)| {
+                    addresses.iter().any(|(address, _)| address == &to)
+                }) {
                     ARBITRAGE_COUNT.fetch_add(1, Ordering::SeqCst);
                     println!("++Listed DEX Router found!: {} (Address: {:?})", detected_dex_name, to);
                     println!("Hash : {:?}", tx_hash);
