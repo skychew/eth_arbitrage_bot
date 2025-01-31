@@ -681,7 +681,7 @@ async fn fetch_price(
         router
     };
     //check if uniswap v2 pair exists
-    let _pair_address = match get_uniswap_v2_pair(token_in, token_out, provider.clone()).await {
+    let pair_address = match get_uniswap_v2_pair(token_in, token_out, provider.clone()).await {
         Ok(address) => {
             println!("✅ Uniswap V2 pair address: {:?}", address);
             address
