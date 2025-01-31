@@ -240,11 +240,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         println!("💱 Current Price for {}: ${:.2}", symbol, price);
                                     }
                                     Err(e) => {
-                                        error!("❌ Error fetching price for {}: {}", symbol, e);
+                                        println!("❌ Error fetching price for {}: {}", symbol, e);
                                     }
                                 }
                             } else {
-                                error!("❌ Pair {} is not valid on Binance.", symbol);
+                                println!("❌ Pair {} is not valid on Binance.", symbol);
                             }
 
                             // Perform arbitrage simulation if we have at least two prices
@@ -283,7 +283,7 @@ exactInput (0xc04b8d59)
 fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256, Address)> {
     // Check for empty input
     if input.is_empty() {
-        error!("❌ Input data is empty, skipping...");
+        println!("❌ Input data is empty, skipping...");
         return None;
     }
 
@@ -317,19 +317,19 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                                 let token_out = Address::from_slice(&path[path.len() - 20..]);
                                 return Some((token_in, token_out, *amount_out, *recipient));
                             } else {
-                                error!("❌ Invalid path length for exactOutput: {:?}", path.len());
+                                println!("❌ Invalid path length for exactOutput: {:?}", path.len());
                             }
                         } else {
-                            error!("❌ Decoding failed: Unexpected parameter structure.");
+                            println!("❌ Decoding failed: Unexpected parameter structure.");
                         }
                     } else {
-                        error!(
+                        println!(
                             "❌ Unexpected number of parameters for exactOutput: expected 5, got {}",
                             decoded.len()
                         );
                     }   
                 }Err(e) => {
-                    error!("❌ Failed to decode exactOutput: {:?}", e);
+                    println!("❌ Failed to decode exactOutput: {:?}", e);
                 }
             }
         }
@@ -352,17 +352,17 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                             let token_out = Address::from_slice(&path[path.len() - 20..]);
                             return Some((token_in, token_out, *amount_in, *recipient));
                         } else {
-                            error!("❌ Invalid path length for exactInput: {:?}", path.len());
+                            println!("❌ Invalid path length for exactInput: {:?}", path.len());
                         }
                     }
                 } else {
-                    error!(
+                    println!(
                         "❌ Unexpected number of parameters for exactInput: expected 5, got {}",
                         decoded.len()
                     );
                 }
             } else {
-                error!("❌ Failed to decode exactInput");
+                println!("❌ Failed to decode exactInput");
             }
         }
 
@@ -386,10 +386,10 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                         return Some((*token_in, *token_out, *amount_in, *recipient));
                     }
                 } else {
-                    error!("❌ Unexpected number of parameters for exactInputSingle: expected 8, got {}", decoded.len());
+                    println!("❌ Unexpected number of parameters for exactInputSingle: expected 8, got {}", decoded.len());
                 }
             } else {
-                error!("❌ Failed to decode exactInputSingle");
+                println!("❌ Failed to decode exactInputSingle");
             }
         }
 
@@ -413,10 +413,10 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                         return Some((*token_in, *token_out, *amount_out, *recipient));
                     }
                 } else {
-                    error!("❌ Unexpected number of parameters for exactOutputSingle: expected 8, got {}", decoded.len());
+                    println!("❌ Unexpected number of parameters for exactOutputSingle: expected 8, got {}", decoded.len());
                 }
             } else {
-                error!("❌ Failed to decode exactOutputSingle");
+                println!("❌ Failed to decode exactOutputSingle");
             }
         }
         "ac9650d8" => {
@@ -690,7 +690,7 @@ async fn fetch_price(
             }
         }
         Err(e) => {
-            error!("❌ {} call failed: {:?}", dex_name, e);
+            println!("❌ {} call failed: {:?}", dex_name, e);
             None
         }
     }
