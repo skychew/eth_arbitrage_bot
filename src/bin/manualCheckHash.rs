@@ -119,7 +119,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 •	The subscription provides transaction hashes, not full transaction details.
 •	The subscription stream should continue indefinitely, feeding new transaction hashes as they appear.
 =========== */
-    let mut stream = provider.subscribe_pending_txs().await?;
+    //let mut stream = provider.subscribe_pending_txs().await?; // manually overriding the tx_hash for testing
     // Initialize the number of hash processsed
     let mut hash_count = 0;       
 
@@ -226,7 +226,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let mut prices = vec![];
                             for (dex_name, dex_addresses) in &dex_groups {
                                 for dex_address in dex_addresses {
-                                    if let Some(price) = fetch_price(&provider, dex_name, token_in, token_out, amount_in, DEFAULT).await {
+                                    if let Some(price) = fetch_price(&provider, *dex_address, dex_name, token_in, token_out, amount_in, DEFAULT).await {
                                         prices.push((dex_name.to_string(), price));
                                     }
                                 }
@@ -633,6 +633,7 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
 */
 async fn fetch_price(
     provider: &Arc<Provider<Ws>>,
+    router: Address,
     dex_name: &str,
     token_in: Address,
     token_out: Address,
@@ -666,15 +667,9 @@ async fn fetch_price(
         [function_selector, encoded_params].concat()
     };
 
-    // Choose appropriate router or quoter address
+    // Replace quoter address instead of router address for uniswap v3
     let router = if dex_name == "Uniswap V3" {
         UNISWAP_V3_QUOTER.parse::<H160>().unwrap()
-    } else {
-        match dex_name {
-            "Uniswap V2" => "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse::<H160>().unwrap(),
-            "SushiSwap" => "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F".parse::<H160>().unwrap(),
-            _ => return None,  // Unsupported DEX
-        }
     };
 
     let tx = TransactionRequest::new()
