@@ -224,7 +224,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let mut prices = vec![];
                             for (dex_name, dex_addresses) in &dex_groups {
                                 for dex_address in dex_addresses {
-                                    if let Some(price) = fetch_price(&provider, *dex_address, dex_name,token_in,token_out,amount_in,fee_tier).await {
+                                    if let Some(price) = fetch_price(&provider, dex_name,token_in,token_out,amount_in,fee_tier).await {
                                         prices.push((dex_name.to_string(), price));
                                     }
                                 }
