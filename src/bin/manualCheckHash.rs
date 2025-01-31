@@ -691,7 +691,7 @@ async fn fetch_price(
             return None; // Skip this iteration if no pair is found
         }
     };
-    
+
     //check if there are reserves
     let (reserve0, reserve1) = get_reserves_v2(pair_address, provider.clone()).await?;
 
@@ -825,7 +825,7 @@ async fn get_reserves_uniswap_v2(
     provider: Arc<Provider<Ws>>,
 ) -> Result<(U256, U256), Box<dyn std::error::Error>> {
     // ABI for Uniswap V2 Pair's `getReserves` function
-    let pair_abi: Abi = serde_json::from_str(include_str!("../abi/uniswap_v2_pair.json"))?;
+    let pair_abi: Abi = serde_json::from_str(include_str!("../../abi/uniswap_v2_pair.json"))?;
 
     // Instantiate the pair contract
     let pair_contract = Contract::new(pair_address, pair_abi, provider);
