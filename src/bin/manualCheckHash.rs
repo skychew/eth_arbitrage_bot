@@ -654,7 +654,7 @@ async fn fetch_price(
 
     // Setup Call Data
     let call_data = if dex_name == "Uniswap V3" {
-        // Encode call for Uniswap V3 Quoter contract using `quoteExactInputSingle`
+        // Encode call for Uniswap V3 Quoter contract
         let function_selector = hex::decode("85f8c259").unwrap(); // Function selector for `quoteExactInputSingle`
         let encoded_params = ethers::abi::encode(&[
             Token::Address(token_in),
@@ -698,7 +698,7 @@ async fn fetch_price(
 
     println!("check fetch_price");
     println!("router: {:?}", router);
-    println!("call_data: {:?}", call_data);
+    println!("Call Data (Hex): {:?}", hex::encode(&call_data));
 
     let tx = TransactionRequest::new()
         .to(router)
