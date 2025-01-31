@@ -62,10 +62,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Connect to Ethereum provider
     let ws_url = std::env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
-    info!("================= Connecting to Eth WebSocket: {}", ws_url);
+    println!("================= Connecting to Eth WebSocket: {}", ws_url);
     let provider = Provider::<Ws>::connect(ws_url).await?;
     let provider = Arc::new(provider);
-    info!("✅ Eth Node Connected, listening...");
+    println!("✅ Eth Node Connected, listening...");
 
     // Define the ABI signatures
     let abi = AbiParser::default()
@@ -123,7 +123,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize the number of hash processsed
     let mut hash_count = 0;       
 
-    debug!("📡 Fetching valid trading pairs from Binance...");
+    println!("📡 Fetching valid trading pairs from Binance...");
     let valid_pairs = fetch_valid_pairs().await?;
 
     // Spawn a task to periodically print the counter - this was overlapping the hashcount print.
@@ -142,7 +142,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .parse()
         .unwrap();
 
-        info!("Tx Hash: {:?}",tx_hash); 
+        println!("Tx Hash: {:?}",tx_hash); 
         hash_count += 1; 
         //Tx only counts fetch_transaction and fetch_price
         print!("\rHash#: {} | Review#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
@@ -177,13 +177,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 
                 if let Some((detected_dex_name, _)) = dex_groups.iter().find(|(_, addresses)| addresses.contains(&to)) {
                     ARBITRAGE_COUNT.fetch_add(1, Ordering::SeqCst);
-                    info!("++Listed DEX Router found!: {} (Address: {:?})", detected_dex_name, to);
-                    info!("Hash : {:?}", tx_hash);
-                    info!("From : {:?}", transaction.from);
-                    info!("To   : {:?}", transaction.to);
+                    println!("++Listed DEX Router found!: {} (Address: {:?})", detected_dex_name, to);
+                    println!("Hash : {:?}", tx_hash);
+                    println!("From : {:?}", transaction.from);
+                    println!("To   : {:?}", transaction.to);
                     let gas_price = transaction.gas_price.map(|g| ethers::utils::format_units(g, "gwei").unwrap());
-                    info!("Gas Price: {} Gwei", gas_price.unwrap_or_else(|| "unknown".to_string()));
-                    info!("AMT ETH: {} ETH", format_ether(transaction.value));
+                    println!("Gas Price: {} Gwei", gas_price.unwrap_or_else(|| "unknown".to_string()));
+                    println!("AMT ETH: {} ETH", format_ether(transaction.value));
 
                     // Decode transaction input
                     if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
@@ -192,23 +192,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     
                         // Check if token is listed
                         if !allowed_tokens.contains(&token_in) {
-                            warn!("❌ TokenInUnListed: {:?}", token_in);
+                            println!("❌ TokenInUnListed: {:?}", token_in);
                         }else{
-                            info!("TokenInListed: {:?}", token_in_name);
+                            println!("TokenInListed: {:?}", token_in_name);
                         }
                         
                         if !allowed_tokens.contains(&token_out) {
-                            warn!("❌ TokenOutUnListed: {:?}", token_out);
+                            println!("❌ TokenOutUnListed: {:?}", token_out);
                         }else{
-                            info!("TokenOutListed: {:?}", token_out_name);
+                            println!("TokenOutListed: {:?}", token_out_name);
                         }
                     
                         if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
-                            info!("✅ Listed Tokens. Starting Arbitrage Sim!");
-                            info!("🪙 Token In: {:?}", token_in_name);
-                            info!("🪙 Token Out: {:?}", token_out_name);
-                            info!("💰 Amount In: {:?}", amount_in);
-                            info!("👤 Recipient: {:?}", recipient);
+                            println!("✅ Listed Tokens. Starting Arbitrage Sim!");
+                            println!("🪙 Token In: {:?}", token_in_name);
+                            println!("🪙 Token Out: {:?}", token_out_name);
+                            println!("💰 Amount In: {:?}", amount_in);
+                            println!("👤 Recipient: {:?}", recipient);
 
                             let amount_in = U256::from_dec_str("1000000000000000000")?; //replace with hardcode
 
@@ -237,7 +237,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             if valid_pairs.contains(&symbol) {
                                 match fetch_binance_price(&symbol).await {
                                     Ok(price) => {
-                                        info!("💱 Current Price for {}: ${:.2}", symbol, price);
+                                        println!("💱 Current Price for {}: ${:.2}", symbol, price);
                                     }
                                     Err(e) => {
                                         error!("❌ Error fetching price for {}: {}", symbol, e);
@@ -255,10 +255,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                                 simulate_arbitrage(Some(first_price.1), Some(second_price.1), amount_in)?;
                             } else {
-                                warn!("❌ Not enough price data for arbitrage simulation.");
+                                println!("❌ Not enough price data for arbitrage simulation.");
                             }
                         }else {
-                            warn!("❌ Skipping...");
+                            println!("❌ Skipping...");
                         }
                     }
                 }
@@ -290,18 +290,18 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
     // Extract function selector
     let selector = hex::encode(&input[0..4]);
     //This will print the raw input data of the transaction, which you can manually decode later
-    info!("Start Decode");
-    info!("🔑 Raw Input Data: {:?}", hex::encode(&input));
-    info!("🧩 Raw Function Selector: 0x{}", selector);
+    println!("Start Decode");
+    println!("🔑 Raw Input Data: {:?}", hex::encode(&input));
+    println!("🧩 Raw Function Selector: 0x{}", selector);
 
     // Match the selector against known function signatures
     match selector.as_str() {
          // Decode exactOutput
         "f28c0498" => {
-            info!("🛠️ Decoding: exactOutput");
+            println!("🛠️ Decoding: exactOutput");
             match abi.function("exactOutput").and_then(|func| func.decode_input(&input[4..])) {
                 Ok(decoded) => {
-                    info!("🔍 Decoded Parameters: {:?}", decoded);
+                    println!("🔍 Decoded Parameters: {:?}", decoded);
                     if decoded.len() == 5 {
                         if let (
                             Token::Bytes(path),
@@ -312,7 +312,7 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                         ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4])
                         {
                             if path.len() >= 40 {
-                                info!("🛠️ Decoded exactOutput successfully!");
+                                println!("🛠️ Decoded exactOutput successfully!");
                                 let token_in = Address::from_slice(&path[0..20]);
                                 let token_out = Address::from_slice(&path[path.len() - 20..]);
                                 return Some((token_in, token_out, *amount_out, *recipient));
@@ -336,7 +336,7 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
 
          // Decode exactInput
         "c04b8d59" => {
-            info!("🛠️ Decoding: exactInput");
+            println!("🛠️ Decoding: exactInput");
             if let Ok(decoded) = abi.function("exactInput").and_then(|func| func.decode_input(&input[4..])) {
                 if decoded.len() == 5 {
                     if let (
@@ -368,7 +368,7 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
 
         // Decode exactInputSingle
         "414bf389" => {
-            info!("🛠️ Decoding: exactInputSingle");
+            println!("🛠️ Decoding: exactInputSingle");
             if let Ok(decoded) = abi.function("exactInputSingle").and_then(|func| func.decode_input(&input[4..])) {
                 if decoded.len() == 8 {
                     if let (
@@ -382,7 +382,7 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                         Token::Uint(_sqrt_price_limit_x96),
                     ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4], &decoded[5], &decoded[6], &decoded[7])
                     {
-                        info!("🛠️ Decoded exactInputSingle successfully!");
+                        println!("🛠️ Decoded exactInputSingle successfully!");
                         return Some((*token_in, *token_out, *amount_in, *recipient));
                     }
                 } else {
@@ -395,7 +395,7 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
 
         // Decode exactOutputSingle
         "db3e2198" => {
-            info!("🛠️ Decoding: exactOutputSingle");
+            println!("🛠️ Decoding: exactOutputSingle");
             if let Ok(decoded) = abi.function("exactOutputSingle").and_then(|func| func.decode_input(&input[4..])) {
                 if decoded.len() == 8 {
                     if let (
@@ -409,7 +409,7 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
                         Token::Uint(_sqrt_price_limit_x96),
                     ) = (&decoded[0], &decoded[1], &decoded[2], &decoded[3], &decoded[4], &decoded[5], &decoded[6], &decoded[7])
                     {
-                        info!("🛠️ Decoded exactOutputSingle successfully!");
+                        println!("🛠️ Decoded exactOutputSingle successfully!");
                         return Some((*token_in, *token_out, *amount_out, *recipient));
                     }
                 } else {
@@ -420,13 +420,13 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
             }
         }
         "ac9650d8" => {
-            info!("🛠️ Ignoring: multicall");
+            println!("🛠️ Ignoring: multicall");
             return None;
         }
 
         // New handlers for swap functions
         "38ed1739" => {  // swapExactTokensForTokens
-            info!("🛠️ Decoding: swapExactTokensForTokens");
+            println!("🛠️ Decoding: swapExactTokensForTokens");
             if let Ok(decoded) = abi.function("swapExactTokensForTokens").and_then(|func| func.decode_input(&input[4..])) {
                 if decoded.len() == 5 {
                     if let (
@@ -445,7 +445,7 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
         }
 
         "18cbafe5" => {  // swapExactETHForTokens
-            info!("🛠️ Decoding: swapExactETHForTokens");
+            println!("🛠️ Decoding: swapExactETHForTokens");
             if let Ok(decoded) = abi.function("swapExactETHForTokens").and_then(|func| func.decode_input(&input[4..])) {
                 if decoded.len() == 4 {
                     if let (
@@ -464,7 +464,7 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
         }
 
         "e8e33700" => {  // addLiquidity
-            info!("🛠️ Decoding: addLiquidity");
+            println!("🛠️ Decoding: addLiquidity");
             if let Ok(decoded) = abi.function("addLiquidity").and_then(|func| func.decode_input(&input[4..])) {
                 if decoded.len() == 8 {
                     if let (
@@ -484,8 +484,8 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
         }
         // Unknown function selector
         _ => {
-            info!("❓ Unknown Function Selector: 0x{}", selector);
-            info!("🔑 Raw Input Data: {:?}", hex::encode(&input));
+            println!("❓ Unknown Function Selector: 0x{}", selector);
+            println!("🔑 Raw Input Data: {:?}", hex::encode(&input));
         }
     }
     // Return None if no valid decoding occurred
@@ -497,33 +497,33 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
     let gas_fee_eth = U256::from(1_000_000_000_000_000u64); // Example gas fee in wei (0.001 ETH)
 
     if let (Some(sushi), Some(uni)) = (sushi_price, uniswap_price) {
-        info!("Starting Simulate Arbitrage...");
+        println!("Starting Simulate Arbitrage...");
         if sushi > uni {
             let profit = sushi.checked_sub(uni).unwrap_or_default().checked_sub(gas_fee_eth).unwrap_or_default();
             if profit > U256::zero() {
-                info!("🚀 Arbitrage Opportunity Detected!");
-                info!("🔹 Buy on Uniswap: {}", uni);
-                info!("🔸 Sell on SushiSwap: {}", sushi);
-                info!("💵 Profit (after gas): {}", profit);
+                println!("🚀 Arbitrage Opportunity Detected!");
+                println!("🔹 Buy on Uniswap: {}", uni);
+                println!("🔸 Sell on SushiSwap: {}", sushi);
+                println!("💵 Profit (after gas): {}", profit);
             } else {
-                info!("❌ No profitable arbitrage (after gas).");
+                println!("❌ No profitable arbitrage (after gas).");
             }
         } else if uni > sushi {
             let profit = uni.checked_sub(sushi).unwrap_or_default().checked_sub(gas_fee_eth).unwrap_or_default();
             if profit > U256::zero() {
-                info!("🚀 Arbitrage Opportunity Detected!");
-                info!("🔹 Buy on SushiSwap: {}", sushi);
-                info!("🔸 Sell on Uniswap: {}", uni);
-                info!("💵 Profit (after gas): {}", profit);
-                info!("💵 Amount in: {}", amount_in);
+                println!("🚀 Arbitrage Opportunity Detected!");
+                println!("🔹 Buy on SushiSwap: {}", sushi);
+                println!("🔸 Sell on Uniswap: {}", uni);
+                println!("💵 Profit (after gas): {}", profit);
+                println!("💵 Amount in: {}", amount_in);
             } else {
-                info!("❌ No profitable arbitrage (after gas).");
+                println!("❌ No profitable arbitrage (after gas).");
             }
         } else {
-            info!("⚖️ Prices are equal. No arbitrage.");
+            println!("⚖️ Prices are equal. No arbitrage.");
         }
     } else {
-        info!("❌ Failed to fetch prices from one or both DEXs.");
+        println!("❌ Failed to fetch prices from one or both DEXs.");
     }
 
     Ok(())
@@ -598,17 +598,17 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
                 if tx.block_hash.is_some() {
                     MINED_COUNT.fetch_add(1, Ordering::SeqCst);
                 }
-                debug!("Transaction fetched successfully on attempt {}", attempt);
+                println!("Transaction fetched successfully on attempt {}", attempt);
                 return Some(tx);
             }
             Ok(None) => {
-                debug!(
+                println!(
                     "Transaction not found (attempt {}). Retrying in {:?}...",
                     attempt, delay
                 );
             }
             Err(e) => {
-                debug!(
+                println!(
                     "Error fetching transaction on attempt {}: {}. Retrying in {:?}...",
                     attempt, e, delay
                 );
@@ -620,7 +620,7 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
         delay *= 6;
         attempt += 1;
     }
-    debug!("Failed to fetch transaction after {} attempts", max_retries);
+    println!("Failed to fetch transaction after {} attempts", max_retries);
 
     drop(permit);
     API_TX_FAIL_COUNT.fetch_add(1, Ordering::SeqCst);
@@ -641,7 +641,7 @@ async fn fetch_price(
     fee_tier: Option<u32>,  // Only relevant for Uniswap V3
 ) -> Option<U256> {
 
-    info!("📞 Fetching price from {}...", dex_name);
+    println!("📞 Fetching price from {}...", dex_name);
     API_TX_COUNT.fetch_add(1, Ordering::SeqCst);
     let fee_tier = 3000; // Common fee tier for Uniswap V3 (0.3%) similar to Uniswap V2 (0.3%)
     // Setup Call Data
@@ -682,10 +682,10 @@ async fn fetch_price(
         Ok(res) => {
             if res.len() >= 32 {
                 let price = U256::from_big_endian(&res[0..32]);
-                info!("💱 {} Price: {}", dex_name, price);
+                println!("💱 {} Price: {}", dex_name, price);
                 Some(price)
             } else {
-                warn!("❌ {} response too short: {:?}", dex_name, res);
+                println!("❌ {} response too short: {:?}", dex_name, res);
                 None
             }
         }
