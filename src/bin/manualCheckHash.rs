@@ -226,7 +226,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             ]);
                             let call_data = [function_selector.clone(), encoded_params.clone()].concat();
                             */
-                           
+                            println!("💡 Fetching price with amount_in: {}, token_in: {}, token_out: {}", amount_in, token_in, token_out);
+                            
                             let mut prices = vec![];
                             for (_group_name, dexes) in &dex_groups {
                                 for (dex_address, dex_name) in dexes {
