@@ -145,7 +145,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Tx Hash: {:?}",tx_hash); 
         hash_count += 1; 
         //Tx only counts fetch_transaction and fetch_price
-       // print!("\rHash#: {} | Review#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
+ /* 
+        print!("\rHash#: {} | Review#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
         hash_count, 
         REVIEW_COUNT.load(Ordering::SeqCst), 
         ARBITRAGE_COUNT.load(Ordering::SeqCst), 
@@ -156,7 +157,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         RETRY_ERR_COUNT.load(Ordering::SeqCst),
         MINED_COUNT.load(Ordering::SeqCst), 
      ); 
-
+*/
         // Flush the output to ensure it appears immediately
         io::stdout().flush().unwrap();
         /* ========
