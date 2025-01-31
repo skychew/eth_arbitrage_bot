@@ -643,7 +643,10 @@ async fn fetch_price(
 
     println!("📞 Fetching price from {}...", dex_name);
     API_TX_COUNT.fetch_add(1, Ordering::SeqCst);
-    let fee_tier = 3000; // Common fee tier for Uniswap V3 (0.3%) similar to Uniswap V2 (0.3%)
+    
+    //set default value if None
+    let fee_tier = fee_tier.unwrap_or(3000);
+
     // Setup Call Data
     let call_data = if dex_name == "Uniswap V3" {
         // Encode call for Uniswap V3 Quoter contract using `quoteExactInputSingle`
@@ -672,7 +675,7 @@ async fn fetch_price(
         UNISWAP_V3_QUOTER.parse::<H160>().unwrap()
     } else {
         router
-    }
+    };
 
     let tx = TransactionRequest::new()
         .to(router)
