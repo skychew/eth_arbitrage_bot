@@ -706,7 +706,7 @@ async fn fetch_price(
     let tx = TransactionRequest::new()
         .to(router)
         .data(call_data)
-        .gas(U256::from(1_000_000))
+        //.gas(U256::from(1_000_000))
         .value(U256::zero());
   
     match provider.call(&tx.into(), None).await {
