@@ -741,6 +741,7 @@ async fn fetch_price(
             } else {
                 println!("Call failed with unknown error: {:?}", e);
             }
+        }
     }
 }
 
