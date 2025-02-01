@@ -534,27 +534,27 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
     Ok(())
 }
 /* ======== Fetch Full Transaction Details
-	•	What It Does: 
-        For every pending transaction hash received from the mempool or blockchain, the bot tries to fetch the full transaction details using get_transaction. Get transaction returns:
-
-        When you fetch transaction data using get_transaction(hash) from an Ethereum node or using libraries like ethers-rs, web3.py, or other JSON-RPC clients, the returned transaction object (tx) typically includes the following fields:
+    What It Does: 
+    For every pending transaction hash received from the mempool or blockchain, the bot tries to fetch the full transaction details using get_transaction. 
+    Get transaction returns:
+    When you fetch transaction data using get_transaction(hash) from an Ethereum node or using libraries like ethers-rs, web3.py, or other JSON-RPC clients, the returned transaction object (tx) typically includes the following fields:
 
     General Format of an Ethereum Transaction (eth_getTransactionByHash)
     Field	    Description
-+blockHash	    Hash of the block containing this transaction (null if pending).
-+blockNumber	Block number where this transaction was included (null if pending).
-+from	        Address of the sender.
-+to	            Address of the receiver or contract (null for contract creation).
-+gas	        Gas limit provided by the sender.
-+gasPrice	    Gas price in wei.
-+hash	        Hash of the transaction.
-+input	        The data payload (used for contract calls or empty for ETH transfers).
-+nonce	        Transaction count of the sender before this transaction.
-+r	            Signature part R (used in transaction signing).
-+s	            Signature part S (used in transaction signing).
-+v	            Recovery id for the signature.
-+transactionIndex	Index of the transaction within the block (null if pending).
-+value	        Amount of ETH transferred in wei (0 for contract calls).
+    -blockHash	    Hash of the block containing this transaction (null if pending).
+    -blockNumber	Block number where this transaction was included (null if pending).
+    -from	        Address of the sender.
+    -to	            Address of the receiver or contract (null for contract creation).
+    -gas	        Gas limit provided by the sender.
+    -gasPrice	    Gas price in wei.
+    -hash	        Hash of the transaction.
+    -input	        The data payload (used for contract calls or empty for ETH transfers).
+    -nonce	        Transaction count of the sender before this transaction.
+    -r	            Signature part R (used in transaction signing).
+    -s	            Signature part S (used in transaction signing).
+    -v	            Recovery id for the signature.
+    -transactionIndex	Index of the transaction within the block (null if pending).
+    -value	        Amount of ETH transferred in wei (0 for contract calls).
 
 	•	Issue Observed:
 	•	Sometimes the fetched transaction is missing (Ok(None)), likely due to one of the following:
@@ -634,7 +634,7 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
 }
 /// 🔍 Fetch DEX Prices
 /*
-
+fetch price from dex
 */
 async fn fetch_price(
     provider: &Arc<Provider<Ws>>,
@@ -655,7 +655,7 @@ async fn fetch_price(
     // Setup Call Data
     let call_data = if dex_name == "Uniswap V3" {
         // Encode call for Uniswap V3 Quoter contract
-        let function_selector = hex::decode("85f8c259").unwrap(); // Function selector for `quoteExactInputSingle`
+        let function_selector = hex::decode("85f8c259").unwrap(); //quoteExactInputSingle
         let encoded_params = ethers::abi::encode(&[
             Token::Address(token_in),
             Token::Address(token_out),
@@ -693,10 +693,11 @@ async fn fetch_price(
         }
     };
 
-    //check if there are reserves
+    //check if there are reserves uniswap v2
     let (_reserve0, _reserve1) = get_reserves_uniswap_v2(pair_address, provider.clone()).await.ok()?;
 
-    println!("check fetch_price");
+    println!("====check fetch_price====");
+    printlm!("fee_tier: {}", fee_tier);
     println!("router: {:?}", router);
     println!("Call Data (Hex): {:?}", hex::encode(&call_data));
 
@@ -884,3 +885,4 @@ Step-by-Step Breakdown of the Strategy
 	•	If the profit is positive, the bot logs that a profitable arbitrage opportunity exists.
     NEXTTODO:
 */
+
