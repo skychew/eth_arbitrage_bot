@@ -700,8 +700,9 @@ async fn fetch_price(
 
     println!("====check fetch_price====");
     println!("fee_tier: {}", fee_tier);
+    println!("amount_in: {}", amount_in);
     println!("router: {:?}", router);
-   // println!("Call Data (Hex): {:?}", hex::encode(&call_data));
+    println!("Call Data (Hex): {:?}", hex::encode(&call_data));
 
     let tx = TransactionRequest::new()
         .to(router)
