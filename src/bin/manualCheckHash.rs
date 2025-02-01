@@ -646,7 +646,7 @@ async fn fetch_price(
     fee_tier: Option<u32>,  // Only relevant for Uniswap V3
 ) -> Option<U256> {
 
-    println!("📞 Fetching price from {}...", dex_name);
+    println!("==== 📞 Fetching price from {} ====", dex_name);
     API_TX_COUNT.fetch_add(1, Ordering::SeqCst);
     
     //set default value if None
