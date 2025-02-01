@@ -715,16 +715,15 @@ async fn fetch_price(
     println!("No price limit:  0");
     println!("router: {:?}", router);
     println!("Call Data (Hex): {:?}", hex::encode(&call_data));
-    // Print the complete transaction request for debugging
-    println!("Provider Transaction Request: {:?}", tx);
-    
+
     let tx = TransactionRequest::new()
         .to(router)
         .data(call_data)
         //.gas(U256::from(1_000_000)) //optional
         .value(U256::zero());
 
-
+    // Print the complete transaction request for debugging
+    println!("Provider Transaction Request: {:?}", tx);
   
     match provider.call(&tx.into(), None).await {
         Ok(res) => {
