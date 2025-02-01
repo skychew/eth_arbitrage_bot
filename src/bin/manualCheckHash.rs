@@ -634,6 +634,19 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
 /// 🔍 Fetch DEX Prices
 /*
 fetch price from dex
+
+To test the function, you can use the following code snippet, if you get a reply the parameters are correct.
+Uniswap V2
+cast call 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D "getAmountsOut(uint256,address[])" \
+"100000" "[0xC02aaA39b223FE8D0A0E5C4F27eAD9083C756Cc2, 0xdAC17F958D2ee523a2206206994597C13D831ec7]"
+
+Uniswap V3
+cast call 0xb27308f9f90d607463bb33ea1bebb41c27ce5ab6 \
+"quoteExactInputSingle(address,address,uint24,uint256,uint160)" \
+"0xC02aaA39b223FE8D0A0E5C4F27eAD9083C756Cc2" \
+"0xdAC17F958D2ee523a2206206994597C13D831ec7" \
+"3000" "1000000000000000000" "0"
+
 */
 async fn fetch_price(
     provider: &Arc<Provider<Ws>>,
@@ -721,7 +734,9 @@ async fn fetch_price(
             }
         }
         Err(e) => {
-            println!("❌ {} call failed: {:?}", dex_name, e);
+            if let Some(err) = e.downcast_ref::<ethers::providers::ProviderError>() {
+                println!("{} Provider error: {:?}",dex_name, err);
+            }
             None
         }
     }
