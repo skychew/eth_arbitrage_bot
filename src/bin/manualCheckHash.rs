@@ -736,9 +736,11 @@ async fn fetch_price(
             }
         }
         Err(e) => {
-            println!("❌ {} call failed: {:?}", dex_name, e);
-            None
-        }
+            if let Some(inner_error) = e.source().and_then(|inner| inner.downcast_ref::<ethers::providers::ProviderError>()) {
+                println!("Provider error: {:?}", inner_error);
+            } else {
+                println!("Call failed with unknown error: {:?}", e);
+            }
     }
 }
 
