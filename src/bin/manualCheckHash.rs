@@ -736,9 +736,7 @@ async fn fetch_price(
             }
         }
         Err(e) => {
-            if let Some(err) = e.source().and_then(|e| e.downcast_ref::<ethers::providers::ProviderError>()) {
-                println!("Uniswap V3 call failed due to provider error: {:?}", err);
-            }
+            println!("❌ {} call failed: {:?}", dex_name, e);
             None
         }
     }
