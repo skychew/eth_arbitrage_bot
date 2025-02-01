@@ -1,6 +1,4 @@
 ///Read Me in footer
-use thiserror::aserror::AsDynError;
-
 use ethers::prelude::*;
 use ethers::providers::{Provider, Ws};
 use ethers::utils::format_ether;
