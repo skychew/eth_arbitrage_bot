@@ -663,7 +663,7 @@ async fn fetch_price(
             Token::Uint(amount_in),
             Token::Uint(U256::zero()),  // No price limit
         ]);
-        [function_selector, encoded_params].concat();
+        [function_selector, encoded_params].concat()
        // println!("-UniswapV3 Calldata-");
     } else {
         // Use Uniswap V2/SushiSwap logic with `getAmountsOut`
@@ -673,7 +673,7 @@ async fn fetch_price(
             Token::Uint(amount_in),
             Token::Array(path),
         ]);
-        [function_selector, encoded_params].concat();
+        [function_selector, encoded_params].concat()
         //println!("-UniswapV2 Calldata-");
     };
 
