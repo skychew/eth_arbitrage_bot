@@ -226,7 +226,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             ]);
                             let call_data = [function_selector.clone(), encoded_params.clone()].concat();
                             */
-                            println!("💡 Fetching price with amount_in: {}, token_in: {}, token_out: {}", amount_in, token_in, token_out);
 
                             let mut prices = vec![];
                             for (_group_name, dexes) in &dex_groups {
@@ -700,13 +699,14 @@ async fn fetch_price(
 
     println!("fee_tier: {}", fee_tier);
     println!("amount_in: {}", amount_in);
+    println!("No price limit:  0")
     println!("router: {:?}", router);
     println!("Call Data (Hex): {:?}", hex::encode(&call_data));
 
     let tx = TransactionRequest::new()
         .to(router)
         .data(call_data)
-        //.gas(U256::from(1_000_000))
+        //.gas(U256::from(1_000_000)) //optional
         .value(U256::zero());
   
     match provider.call(&tx.into(), None).await {
