@@ -664,6 +664,7 @@ async fn fetch_price(
             Token::Uint(U256::zero()),  // No price limit
         ]);
         [function_selector, encoded_params].concat()
+        println!("-UniswapV3 Calldata-");
     } else {
         // Use Uniswap V2/SushiSwap logic with `getAmountsOut`
         let function_selector = hex::decode("d06ca61f").unwrap(); // `getAmountsOut`
@@ -673,6 +674,7 @@ async fn fetch_price(
             Token::Array(path),
         ]);
         [function_selector, encoded_params].concat()
+        println!("-UniswapV2 Calldata-");
     };
 
     // Replace quoter address instead of router address for uniswap v3
