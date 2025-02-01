@@ -667,13 +667,13 @@ async fn fetch_price(
     // Setup Call Data
     let call_data = if dex_name == "Uniswap V3" {
         // Encode call for Uniswap V3 Quoter contract
-        let function_selector = hex::decode("85f8c259").unwrap(); //quoteExactInputSingle
+        let function_selector = hex::decode("2d9ebd1d").unwrap(); //quoteExactInputSingle :0x2d9ebd1d
         let encoded_params = ethers::abi::encode(&[
             Token::Address(token_in),
             Token::Address(token_out),
             Token::Uint(U256::from(fee_tier)),
             Token::Uint(amount_in),
-            Token::Uint(U256::zero()),  // No price limit
+            Token::Uint(U256::zero()),  // sqrtPriceLimitx96 :No price limit
         ]);
         [function_selector, encoded_params].concat()
        // println!("-UniswapV3 Calldata-");
