@@ -710,17 +710,19 @@ async fn fetch_price(
     //check if there are reserves uniswap v2
     let (_reserve0, _reserve1) = get_reserves_uniswap_v2(pair_address, provider.clone()).await.ok()?;
 
-    println!("fee_tier: {}", fee_tier);
-    println!("amount_in: {}", amount_in);
-    println!("No price limit:  0");
-    println!("router: {:?}", router);
-    println!("Call Data (Hex): {:?}", hex::encode(&call_data));
-
     let tx = TransactionRequest::new()
         .to(router)
         .data(call_data)
         //.gas(U256::from(1_000_000)) //optional
         .value(U256::zero());
+
+    println!("fee_tier: {}", fee_tier);
+    println!("amount_in: {}", amount_in);
+    println!("No price limit:  0");
+    println!("router: {:?}", router);
+    println!("Call Data (Hex): {:?}", hex::encode(&call_data));
+    // Print the complete transaction request for debugging
+    println!("Provider Transaction Request: {:?}", tx);
   
     match provider.call(&tx.into(), None).await {
         Ok(res) => {
