@@ -698,7 +698,6 @@ async fn fetch_price(
     //check if there are reserves uniswap v2
     let (_reserve0, _reserve1) = get_reserves_uniswap_v2(pair_address, provider.clone()).await.ok()?;
 
-    println!("====check fetch_price====");
     println!("fee_tier: {}", fee_tier);
     println!("amount_in: {}", amount_in);
     println!("router: {:?}", router);
