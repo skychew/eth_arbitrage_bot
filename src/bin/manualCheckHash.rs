@@ -214,7 +214,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             println!("💰 Amount In: {:?}", amount_in);
                             println!("👤 Recipient: {:?}", recipient);
 
-                            let amount_in = U256::from_dec_str("100000")?; //replace with hardcode
+                            let amount_in = U256::from_dec_str("1000000000")?; //replace with hardcode
 
                             // Define call data
                             /* 
