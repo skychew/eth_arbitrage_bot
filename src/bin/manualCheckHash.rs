@@ -736,10 +736,8 @@ async fn fetch_price(
             }
         }
         Err(e) => {
-            if let Some(err) = e.as_dyn_error().and_then(|e| e.downcast_ref::<ethers::providers::ProviderError>()) {
-                println!("Provider error: {:?}", err);
-            } else {
-                println!("General error: {:?}", e);
+            if let Some(err) = e.source().and_then(|e| e.downcast_ref::<ethers::providers::ProviderError>()) {
+                println!("Uniswap V3 call failed due to provider error: {:?}", err);
             }
             None
         }
