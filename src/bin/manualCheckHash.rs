@@ -228,7 +228,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             */
 
                             let mut prices = vec![];
-                            /* 
+                            
                             for (_group_name, dexes) in &dex_groups {
                                 for (dex_address, dex_name) in dexes {
                                     if let Some(price) = fetch_price(&provider, *dex_address, dex_name, token_in, token_out, amount_in, DEFAULT).await {
@@ -236,8 +236,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     }
                                 }
                             }
-                            */
-
 
                             // Check Binance price.
                             let symbol = format!("{}{}", token_in_name, token_out_name);
