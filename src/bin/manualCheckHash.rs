@@ -647,6 +647,13 @@ cast call 0xb27308f9f90d607463bb33ea1bebb41c27ce5ab6 \
 "0xdAC17F958D2ee523a2206206994597C13D831ec7" \
 "3000" "1000000000000000000" "0"
 
+Uniswap V3
+It should be noted that quoteExactInputSingle is only 1 of 4 different methods that the quoter offers:
+quoteExactInputSingle - given the amount you want to swap, produces a quote for the amount out for a swap of a single pool
+quoteExactInput - given the amount you want to swap, produces a quote for the amount out for a swap over multiple pools
+quoteExactOutputSingle - given the amount you want to get out, produces a quote for the amount in for a swap over a single pool
+quoteExactOutput - given the amount you want to get out, produces a quote for the amount in for a swap over multiple pools
+
 */
 async fn fetch_price(
     provider: &Arc<Provider<Ws>>,
@@ -672,7 +679,7 @@ async fn fetch_price(
             Token::Address(token_in),
             Token::Address(token_out),
             Token::Uint(U256::from(fee_tier)),
-            Token::Uint(amount_in),
+            Token::Uint(U256::from(1e18 as u64)),
             Token::Uint(U256::zero()),  // sqrtPriceLimitx96 :No price limit
         ]);
         [function_selector, encoded_params].concat()
@@ -723,7 +730,16 @@ async fn fetch_price(
         .value(U256::zero());
 
     // Print the complete transaction request for debugging
-    println!("Provider Transaction Request: {:?}", tx);
+    /*
+    Here’s a breakdown of the key components:
+	1.	Gas: This represents the amount of computational work required to execute the transaction. It depends on the complexity of the operation (e.g., calling a smart contract, swapping tokens).
+	2.	Gas Price: This indicates the price per unit of gas in Gwei. It determines how much ETH you’re willing to pay for each unit of gas.
+	3.	From = None: Since this is a read-only call (simulation) to fetch price (using .call()), you don’t need to specify a from address. This is fine in this context.
+	4.	Value = Some(0): This refers to the amount of ETH sent along with the transaction. Since you are only fetching data (not making a swap or sending ETH), 0 ETH is correct.
+
+If this were a live transaction, specifying from, gas, and gas price would be mandatory. But for a simulation (call()), the current setup is valid.
+     */
+    println!("Provider: {:?}", tx);
   
     match provider.call(&tx.into(), None).await {
         Ok(res) => {
