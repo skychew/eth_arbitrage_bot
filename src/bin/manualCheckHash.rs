@@ -228,6 +228,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             */
 
                             let mut prices = vec![];
+                            /* 
                             for (_group_name, dexes) in &dex_groups {
                                 for (dex_address, dex_name) in dexes {
                                     if let Some(price) = fetch_price(&provider, *dex_address, dex_name, token_in, token_out, amount_in, DEFAULT).await {
@@ -235,6 +236,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     }
                                 }
                             }
+                            */
+
+
                             // Check Binance price.
                             let symbol = format!("{}{}", token_in_name, token_out_name);
                             
@@ -633,26 +637,9 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
 }
 /// 🔍 Fetch DEX Prices
 /*
-fetch price from dex
-
-To test the function, you can use the following code snippet, if you get a reply the parameters are correct.
-Uniswap V2
-cast call 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D "getAmountsOut(uint256,address[])" \
-"100000" "[0xC02aaA39b223FE8D0A0E5C4F27eAD9083C756Cc2, 0xdAC17F958D2ee523a2206206994597C13D831ec7]"
-
-Uniswap V3
-cast call 0xb27308f9f90d607463bb33ea1bebb41c27ce5ab6 \
-"quoteExactInputSingle(address,address,uint24,uint256,uint160)" \
-"0xC02aaA39b223FE8D0A0E5C4F27eAD9083C756Cc2" \
-"0xdAC17F958D2ee523a2206206994597C13D831ec7" \
-"3000" "1000000000000000000" "0"
-
-Uniswap V3
-It should be noted that quoteExactInputSingle is only 1 of 4 different methods that the quoter offers:
-quoteExactInputSingle - given the amount you want to swap, produces a quote for the amount out for a swap of a single pool
-quoteExactInput - given the amount you want to swap, produces a quote for the amount out for a swap over multiple pools
-quoteExactOutputSingle - given the amount you want to get out, produces a quote for the amount in for a swap over a single pool
-quoteExactOutput - given the amount you want to get out, produces a quote for the amount in for a swap over multiple pools
+Fetch price from dex
+f7729d43
+2d9ebd1d
 
 */
 async fn fetch_price(
@@ -674,7 +661,7 @@ async fn fetch_price(
     // Setup Call Data
     let call_data = if dex_name == "Uniswap V3" {
         // Encode call for Uniswap V3 Quoter contract
-        let function_selector = hex::decode("2d9ebd1d").unwrap(); //quoteExactInputSingle :0x2d9ebd1d
+        let function_selector = hex::decode("f7729d43").unwrap(); //quoteExactInputSingle
         let encoded_params = ethers::abi::encode(&[
             Token::Address(token_in),
             Token::Address(token_out),
