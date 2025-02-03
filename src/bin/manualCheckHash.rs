@@ -209,7 +209,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     
                         if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
                             let (_, token_in_decimals) = get_token_info(&token_in);
-                            let amount_in = U256::from(10u64.pow(token_in_decimals as u32));
+                            let amount_in = U256::from(2) * U256::exp10(token_in_decimals as usize);
 
                             println!("✅ Listed Tokens. Starting Arbitrage Sim!");
                             println!("🪙 Token In: {:?}", token_in_name);
@@ -704,16 +704,6 @@ async fn fetch_price(
         .gas(U256::from(1_000_000)) //optional
         .value(U256::zero());
 
-    // Print the complete transaction request for debugging
-    /*
-    Here’s a breakdown of the key components:
-	1.	Gas: This represents the amount of computational work required to execute the transaction. It depends on the complexity of the operation (e.g., calling a smart contract, swapping tokens).
-	2.	Gas Price: This indicates the price per unit of gas in Gwei. It determines how much ETH you’re willing to pay for each unit of gas.
-	3.	From = None: Since this is a read-only call (simulation) to fetch price (using .call()), you don’t need to specify a from address. This is fine in this context.
-	4.	Value = Some(0): This refers to the amount of ETH sent along with the transaction. Since you are only fetching data (not making a swap or sending ETH), 0 ETH is correct.
-
-If this were a live transaction, specifying from, gas, and gas price would be mandatory. But for a simulation (call()), the current setup is valid.
-     */
     println!("Provider: {:?}", tx);
     
     let (token_out_name, token_out_decimals) = get_token_info(&token_out);
