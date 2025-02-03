@@ -203,6 +203,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     
                         if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
                             let (_, token_in_decimals) = get_token_info(&token_in);
+                            //override amount_in to 2 tokens
                             let amount_in = U256::from(2) * U256::exp10(token_in_decimals as usize);
 
                             info!("✅ Listed Tokens. Starting Arbitrage Sim!");
