@@ -104,11 +104,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Define the list of DEX router addresses
     let dex_groups = vec![
         ("Uniswap", vec![
-            "0x7a250d5630b4cf539739df2c5dacab1e14a31957".parse().unwrap(), // Uniswap V2
-            "0xe592427a0aece92de3edee1f18e0157c05861564".parse().unwrap()  // Uniswap V3
+            ("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D".parse::<H160>().unwrap(), "Uniswap V2"),
+            ("0xe592427a0aece92de3edee1f18e0157c05861564".parse::<H160>().unwrap(), "Uniswap V3"),
         ]),
         ("SushiSwap", vec![
-            "0xd9e1ce17f2641f24aE83637ab66a2cca9C378B9F".parse().unwrap() // SushiSwap
+            ("0xd9e1ce17f2641f24aE83637ab66a2cca9c378b9f".parse::<H160>().unwrap(), "SushiSwap"),
         ]),
     ];
 /* ======== Subscribe to pending transactions
@@ -197,27 +197,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     
                         if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
+                            let (_, token_in_decimals) = get_token_info(&token_in);
+                            let amount_in = U256::from(10u64.pow(token_in_decimals as u32));
+
                             info!("✅ Listed Tokens. Starting Arbitrage Sim!");
                             info!("🪙 Token In: {:?}", token_in_name);
                             info!("🪙 Token Out: {:?}", token_out_name);
                             info!("💰 Amount In: {:?}", amount_in);
                             info!("👤 Recipient: {:?}", recipient);
 
-                            let amount_in = U256::from_dec_str("1000000000000000000")?; //replace with hardcode
-
-                            // Define call data
-                            let path = vec![Token::Address(token_in), Token::Address(token_out)];
-                            let function_selector = hex::decode("d06ca61f")?; // Function selector for getAmountsOut
-                            let encoded_params = ethers::abi::encode(&[
-                                Token::Uint(amount_in),
-                                Token::Array(path.clone()),
-                            ]);
-                            let call_data = [function_selector.clone(), encoded_params.clone()].concat();
-
                             let mut prices = vec![];
-                            for (dex_name, dex_addresses) in &dex_groups {
-                                for dex_address in dex_addresses {
-                                    if let Some(price) = fetch_price(&provider, *dex_address, call_data.clone(), dex_name).await {
+
+                            for (_group_name, dexes) in &dex_groups {
+                                for (dex_address, dex_name) in dexes {
+                                    if let Some(price) = fetch_price(&provider, *dex_address, dex_name, token_in, token_out, amount_in, DEFAULT).await {
                                         prices.push((dex_name.to_string(), price));
                                     }
                                 }
@@ -622,14 +615,18 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
 async fn fetch_price(
     provider: &Arc<Provider<Ws>>,
     router: Address,
-    call_data: Vec<u8>,
     dex_name: &str,
+    token_in: Address,
+    token_out: Address,
+    amount_in: U256,
+    fee_tier: Option<u32>,  // Only relevant for Uniswap V3
 ) -> Option<U256> {
     info!("==== 📞 Fetching price from {} ====", dex_name);
     API_TX_COUNT.fetch_add(1, Ordering::SeqCst);
 
     //set default value if None
     let fee_tier = fee_tier.unwrap_or(3000);
+
     // Setup Call Data
     let call_data = if dex_name == "Uniswap V3" {
         // Encode call for Uniswap V3 Quoter contract
@@ -638,7 +635,7 @@ async fn fetch_price(
             Token::Address(token_in),
             Token::Address(token_out),
             Token::Uint(U256::from(fee_tier)),
-            Token::Uint(U256::from(1e18 as u64)),
+            Token::Uint(amount_in),  //amount_in
             Token::Uint(U256::zero()),  // sqrtPriceLimitx96 :No price limit
         ]);
         [function_selector, encoded_params].concat()
@@ -662,7 +659,6 @@ async fn fetch_price(
         router
     };
 
-
     // Print the complete transaction request for debugging
     /*
     Here’s a breakdown of the key components:
@@ -671,8 +667,8 @@ async fn fetch_price(
 	3.	From = None: Since this is a read-only call (simulation) to fetch price (using .call()), you don’t need to specify a from address. This is fine in this context.
 	4.	Value = Some(0): This refers to the amount of ETH sent along with the transaction. Since you are only fetching data (not making a swap or sending ETH), 0 ETH is correct.
 
-If this were a live transaction, specifying from, gas, and gas price would be mandatory. But for a simulation (call()), the current setup is valid.
-     */
+    If this were a live transaction, specifying from, gas, and gas price would be mandatory. But for a simulation (call()), the current setup is valid.
+    */
 
     debug!("fee_tier: {}", fee_tier);
     debug!("amount_in: {}", amount_in);
@@ -696,23 +692,23 @@ If this were a live transaction, specifying from, gas, and gas price would be ma
 
             let price = if res.len() >= 128 {
                 // Uniswap V2 (dynamic array)
-                println!("🔍 Decoding Uniswap V2 response...");
+                info!("🔍 Decoding Uniswap V2 response...");
                 U256::from_big_endian(&res[96..128])
             } else if res.len() >= 32 {
                 // Uniswap V3 (direct output)
-                println!("🔍 Decoding Uniswap V3 response...");
+                info!("🔍 Decoding Uniswap V3 response...");
                 U256::from_big_endian(&res[0..32])
             } else {
-                println!("❌ Response too short or unexpected format: {:?}", res);
+                error!("❌ Response too short or unexpected format: {:?}", res);
                 return None;
             };
     
-            println!("token_out_decimals: {:?}", token_out_decimals);
+            info!("token_out_decimals: {:?}", token_out_decimals);
     
             let normalized_price = price.checked_div(U256::exp10(token_out_decimals as usize))
                 .unwrap_or(U256::zero());
     
-            println!("💱 {}, Price {}: {} | Raw Price: {:?}", dex_name, token_out_name, normalized_price, price);
+            debug!("💱 {}, Price {}: {} | Raw Price: {:?}", dex_name, token_out_name, normalized_price, price);
     
             Some(normalized_price)
         }
