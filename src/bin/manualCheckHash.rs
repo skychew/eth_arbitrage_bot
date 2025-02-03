@@ -500,9 +500,9 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
                 println!("🚀 Arbitrage Opportunity Detected!");
                 println!("🔹 Buy on Uniswap: {}", uni);
                 println!("🔸 Sell on SushiSwap: {}", sushi);
-                println!("💵 Profit (after gas): {}", profit);
+                println!("💵 Profit (before gas): {}", profit);
             } else {
-                println!("❌ No profitable arbitrage (after gas).");
+                println!("❌ No profitable arbitrage (before gas).");
             }
         } else if uni > sushi {
             let profit = uni.checked_sub(sushi).unwrap_or_default().checked_sub(gas_fee_eth).unwrap_or_default();
@@ -510,10 +510,10 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
                 println!("🚀 Arbitrage Opportunity Detected!");
                 println!("🔹 Buy on SushiSwap: {}", sushi);
                 println!("🔸 Sell on Uniswap: {}", uni);
-                println!("💵 Profit (after gas): {}", profit);
+                println!("💵 Profit (before gas): {}", profit);
                 println!("💵 Amount in: {}", amount_in);
             } else {
-                println!("❌ No profitable arbitrage (after gas).");
+                println!("❌ No profitable arbitrage (before gas).");
             }
         } else {
             println!("⚖️ Prices are equal. No arbitrage.");
