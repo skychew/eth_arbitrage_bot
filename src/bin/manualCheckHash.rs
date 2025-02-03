@@ -215,18 +215,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             println!("💰 Amount In: {:?}", amount_in);
                             println!("👤 Recipient: {:?}", recipient);
                             
-                            let amount_in = U256::from_dec_str("1000000000000000000")?; //replace with hardcode
-                            let amount_in = U256::from(1e18 as u64);  // or adapt based on token decimals
-                            // Define call data
-                            /* 
-                            let path = vec![Token::Address(token_in), Token::Address(token_out)];
-                            let function_selector = hex::decode("d06ca61f")?; // Function selector for getAmountsOut
-                            let encoded_params = ethers::abi::encode(&[
-                                Token::Uint(amount_in),
-                                Token::Array(path.clone()),
-                            ]);
-                            let call_data = [function_selector.clone(), encoded_params.clone()].concat();
-                            */
+                            let (_, token_in_decimals) = get_token_info(&token_in);
+                            let amount_in = U256::from(10u64.pow(token_in_decimals as u32));
 
                             let mut prices = vec![];
                             
