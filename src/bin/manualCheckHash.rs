@@ -191,8 +191,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     // Decode transaction input
                     if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
-                        let token_in_name = get_token_name(&token_in);
-                        let token_out_name = get_token_name(&token_out);
+                        let (token_in_name, _) = get_token_info(&token_in);
+                        let (token_out_name, _) = get_token_info(&token_out);
                     
                         // Check if token is listed
                         if !allowed_tokens.contains(&token_in) {
@@ -711,7 +711,7 @@ async fn fetch_price(
     let tx = TransactionRequest::new()
         .to(router)
         .data(call_data)
-        .gas(U256::from(10_000_000)) //optional
+        .gas(U256::from(1_000_000)) //optional
         .value(U256::zero());
 
     // Print the complete transaction request for debugging
@@ -727,11 +727,14 @@ If this were a live transaction, specifying from, gas, and gas price would be ma
     println!("Provider: {:?}", tx);
   
     match provider.call(&tx.into(), None).await {
+        let (token_out_name, token_out_decimals) = get_token_info(&token_out);
         Ok(res) => {
             if res.len() >= 32 {
                 let price = U256::from_big_endian(&res[0..32]);
-                println!("💱 {} Price: {}", dex_name, price);
-                Some(price)
+                let normalized_price = price / U256::from(10u64.pow(token_out_decimals as u32));
+                println!("💱 {}, Price {}: {}", dex_name, token_out_name, normalized_price);
+
+                Some(normalized_price)
             } else {
                 println!("❌ {} response too short: {:?}", dex_name, res);
                 None
@@ -744,29 +747,32 @@ If this were a live transaction, specifying from, gas, and gas price would be ma
     }
 }
 
-/// Mapping token addresses to their names
-fn get_token_name(address: &Address) -> String {
-    let token_map: HashMap<Address, &str> = HashMap::from([
-        ("0x2eaa73bd0db20c64f53febea7b5f5e5bccc7fb8b".parse().unwrap(), "ETH"),
-        ("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".parse().unwrap(), "WETH"),
-        ("0x514910771AF9Ca656af840dff83E8264EcF986CA".parse().unwrap(), "LINK"),
-        ("0x163f8C2467924be0ae7B5347228CABF260318753".parse().unwrap(), "WLD"),
-        ("0xfAbA6f8e4a5E8Ab82F62fe7C39859FA577269BE3".parse().unwrap(), "ONDO"),
-        ("0x57e114B691Db790C35207b2e685D4A43181e6061".parse().unwrap(), "ENA"),
-        ("0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE".parse().unwrap(), "SHIB"),
-        ("0x6982508145454Ce325dDbE47a25d4ec3d2311933".parse().unwrap(), "PEPE"),
-        ("0x4C1746A800D224393fE2470C70A35717eD4eA5F1".parse().unwrap(), "PLUME"),
-        ("0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C".parse().unwrap(), "SPX"),
-        ("0xaaeE1A9723aaDB7afA2810263653A34bA2C21C7a".parse().unwrap(), "MOG"),
-        ("0xA2cd3D43c775978A96BdBf12d733D5A1ED94fb18".parse().unwrap(), "XCN"),
-        ("0xdac17f958d2ee523a2206206994597c13d831ec7".parse().unwrap(), "USDT"),
-        ("0x6b3595068778dd592e39a122f4f5a5cf09c90fe2".parse().unwrap(), "SUSHI"),
-        ("0x2260fac5e5542a773aa44fbcfedf7c193bc2c599".parse().unwrap(), "WBTC"),
-        ("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48".parse().unwrap(), "USDC"),
-        ("0x6b175474e89094c44da98b954eedeac495271d0f".parse().unwrap(), "DAI"),
+/// Mapping token addresses to their token name and decimals
+fn get_token_info(address: &Address) -> (String, u8) {
+    let token_map: HashMap<Address, (&str, u8)> = HashMap::from([
+        ("0x2eaa73bd0db20c64f53febea7b5f5e5bccc7fb8b".parse().unwrap(), ("ETH", 18)),
+        ("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".parse().unwrap(), ("WETH", 18)),
+        ("0x514910771AF9Ca656af840dff83E8264EcF986CA".parse().unwrap(), ("LINK", 18)),
+        ("0x163f8C2467924be0ae7B5347228CABF260318753".parse().unwrap(), ("WLD", 18)),
+        ("0xfAbA6f8e4a5E8Ab82F62fe7C39859FA577269BE3".parse().unwrap(), ("ONDO", 18)),
+        ("0x57e114B691Db790C35207b2e685D4A43181e6061".parse().unwrap(), ("ENA", 18)),
+        ("0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE".parse().unwrap(), ("SHIB", 18)),
+        ("0x6982508145454Ce325dDbE47a25d4ec3d2311933".parse().unwrap(), ("PEPE", 18)),
+        ("0x4C1746A800D224393fE2470C70A35717eD4eA5F1".parse().unwrap(), ("PLUME", 18)),
+        ("0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C".parse().unwrap(), ("SPX", 8)),
+        ("0xaaeE1A9723aaDB7afA2810263653A34bA2C21C7a".parse().unwrap(), ("MOG", 18)),
+        ("0xA2cd3D43c775978A96BdBf12d733D5A1ED94fb18".parse().unwrap(), ("XCN", 18)),
+        ("0xdac17f958d2ee523a2206206994597c13d831ec7".parse().unwrap(), ("USDT", 6)),
+        ("0x6b3595068778dd592e39a122f4f5a5cf09c90fe2".parse().unwrap(), ("SUSHI", 18)),
+        ("0x2260fac5e5542a773aa44fbcfedf7c193bc2c599".parse().unwrap(), ("WBTC", 8)),
+        ("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48".parse().unwrap(), ("USDC", 6)),
+        ("0x6b175474e89094c44da98b954eedeac495271d0f".parse().unwrap(), ("DAI", 18)),
     ]);
 
-    token_map.get(address).unwrap_or(&"Unknown").to_string()
+    match token_map.get(address) {
+        Some(&(name, decimals)) => (name.to_string(), decimals),
+        None => ("NotListed".to_string(), 18), // Default to 18 decimals for unknown tokens
+    }
 }
 
 /// Fetch the real-time price of a trading pair from Binance
