@@ -190,7 +190,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     println!("AMT ETH: {} ETH", format_ether(transaction.value));
 
                     // Decode transaction input
-                    if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
+                    if let Some((token_in, token_out, _amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
                         let (token_in_name, _) = get_token_info(&token_in);
                         let (token_out_name, _) = get_token_info(&token_out);
                         
