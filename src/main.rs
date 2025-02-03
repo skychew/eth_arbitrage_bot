@@ -184,8 +184,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     // Decode transaction input
                     if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
-                        let token_in_name = get_token_name(&token_in);
-                        let token_out_name = get_token_name(&token_out);
+                        let (token_in_name, _) = get_token_info(&token_in);
+                        let (token_out_name, _) = get_token_info(&token_out);
                     
                         // Check if token is listed
                         if !allowed_tokens.contains(&token_in) {
