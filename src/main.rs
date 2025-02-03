@@ -485,19 +485,19 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
 
 /// 💰 Simulate arbitrage opportunity based on detected DEX transaction
 fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, amount_in: U256) -> Result<(), Box<dyn std::error::Error>> {
-    let gas_fee_eth = U256::from(1_000_000_000_000_000u64); // Example gas fee in wei (0.001 ETH)
-
+    //let gas_fee_eth = U256::from(1_000_000_u64); // Example gas fee in wei (0.000001 ETH)
+    let gas_fee_eth = U256::from(0_u64); // assume 0 first
     if let (Some(sushi), Some(uni)) = (sushi_price, uniswap_price) {
-        info!("Starting Simulate Arbitrage...");
+        info!("Starting Simulate Arbitrage. GasEth: {}, Sushi: {}, Uni: {}", gas_fee_eth, sushi, uni);
         if sushi > uni {
             let profit = sushi.checked_sub(uni).unwrap_or_default().checked_sub(gas_fee_eth).unwrap_or_default();
             if profit > U256::zero() {
-                info!("🚀 Arbitrage Opportunity Detected!");
-                info!("🔹 Buy on Uniswap: {}", uni);
-                info!("🔸 Sell on SushiSwap: {}", sushi);
-                info!("💵 Profit (after gas): {}", profit);
+                println!("🚀 Arbitrage Opportunity Detected!");
+                println!("🔹 Buy on Uniswap: {}", uni);
+                println!("🔸 Sell on SushiSwap: {}", sushi);
+                println!("💵 Profit (before gas): {}", profit);
             } else {
-                info!("❌ No profitable arbitrage (after gas).");
+                error!("❌ No profitable arbitrage (before gas).");
             }
         } else if uni > sushi {
             let profit = uni.checked_sub(sushi).unwrap_or_default().checked_sub(gas_fee_eth).unwrap_or_default();
@@ -505,42 +505,42 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
                 info!("🚀 Arbitrage Opportunity Detected!");
                 info!("🔹 Buy on SushiSwap: {}", sushi);
                 info!("🔸 Sell on Uniswap: {}", uni);
-                info!("💵 Profit (after gas): {}", profit);
+                info!("💵 Profit (before gas): {}", profit);
                 info!("💵 Amount in: {}", amount_in);
             } else {
-                info!("❌ No profitable arbitrage (after gas).");
+                error!("❌ No profitable arbitrage (before gas).");
             }
         } else {
             info!("⚖️ Prices are equal. No arbitrage.");
         }
     } else {
-        info!("❌ Failed to fetch prices from one or both DEXs.");
+        error!("❌ Failed to fetch prices from one or both DEXs.");
     }
 
     Ok(())
 }
 /* ======== Fetch Full Transaction Details
-	•	What It Does: 
-        For every pending transaction hash received from the mempool or blockchain, the bot tries to fetch the full transaction details using get_transaction. Get transaction returns:
+    What It Does: 
+    For every pending transaction hash received from the mempool or blockchain, the bot tries to fetch the full transaction details using get_transaction. Get transaction returns:
 
-        When you fetch transaction data using get_transaction(hash) from an Ethereum node or using libraries like ethers-rs, web3.py, or other JSON-RPC clients, the returned transaction object (tx) typically includes the following fields:
+    When you fetch transaction data using get_transaction(hash) from an Ethereum node or using libraries like ethers-rs, web3.py, or other JSON-RPC clients, the returned transaction object (tx) typically includes the following fields:
 
     General Format of an Ethereum Transaction (eth_getTransactionByHash)
     Field	    Description
-+blockHash	    Hash of the block containing this transaction (null if pending).
-+blockNumber	Block number where this transaction was included (null if pending).
-+from	        Address of the sender.
-+to	            Address of the receiver or contract (null for contract creation).
-+gas	        Gas limit provided by the sender.
-+gasPrice	    Gas price in wei.
-+hash	        Hash of the transaction.
-+input	        The data payload (used for contract calls or empty for ETH transfers).
-+nonce	        Transaction count of the sender before this transaction.
-+r	            Signature part R (used in transaction signing).
-+s	            Signature part S (used in transaction signing).
-+v	            Recovery id for the signature.
-+transactionIndex	Index of the transaction within the block (null if pending).
-+value	        Amount of ETH transferred in wei (0 for contract calls).
+    -blockHash	    Hash of the block containing this transaction (null if pending).
+    -blockNumber	Block number where this transaction was included (null if pending).
+    -from	        Address of the sender.
+    -to	            Address of the receiver or contract (null for contract creation).
+    -gas	        Gas limit provided by the sender.
+    -gasPrice	    Gas price in wei.
+    -hash	        Hash of the transaction.
+    -input	        The data payload (used for contract calls or empty for ETH transfers).
+    -nonce	        Transaction count of the sender before this transaction.
+    -r	            Signature part R (used in transaction signing).
+    -s	            Signature part S (used in transaction signing).
+    -v	            Recovery id for the signature.
+    -transactionIndex	Index of the transaction within the block (null if pending).
+    -value	        Amount of ETH transferred in wei (0 for contract calls).
 
 	•	Issue Observed:
 	•	Sometimes the fetched transaction is missing (Ok(None)), likely due to one of the following:
@@ -625,8 +625,60 @@ async fn fetch_price(
     call_data: Vec<u8>,
     dex_name: &str,
 ) -> Option<U256> {
-    info!("📞 Fetching price from {}...", dex_name);
+    info!("==== 📞 Fetching price from {} ====", dex_name);
     API_TX_COUNT.fetch_add(1, Ordering::SeqCst);
+
+    //set default value if None
+    let fee_tier = fee_tier.unwrap_or(3000);
+    // Setup Call Data
+    let call_data = if dex_name == "Uniswap V3" {
+        // Encode call for Uniswap V3 Quoter contract
+        let function_selector = hex::decode("f7729d43").unwrap(); //quoteExactInputSingle
+        let encoded_params = ethers::abi::encode(&[
+            Token::Address(token_in),
+            Token::Address(token_out),
+            Token::Uint(U256::from(fee_tier)),
+            Token::Uint(U256::from(1e18 as u64)),
+            Token::Uint(U256::zero()),  // sqrtPriceLimitx96 :No price limit
+        ]);
+        [function_selector, encoded_params].concat()
+    // println!("-UniswapV3 Calldata-");
+    } else {
+        // Use Uniswap V2/SushiSwap logic with `getAmountsOut`
+        let function_selector = hex::decode("d06ca61f").unwrap(); // `getAmountsOut`
+        let path = vec![Token::Address(token_in), Token::Address(token_out)];
+        let encoded_params = ethers::abi::encode(&[
+            Token::Uint(amount_in),
+            Token::Array(path),
+        ]);
+        [function_selector, encoded_params].concat()
+        //println!("-UniswapV2 Calldata-");
+    };
+
+    // Replace quoter address instead of router address for uniswap v3
+    let router = if dex_name == "Uniswap V3" {
+        UNISWAP_V3_QUOTER.parse::<H160>().unwrap()
+    } else {
+        router
+    };
+
+
+    // Print the complete transaction request for debugging
+    /*
+    Here’s a breakdown of the key components:
+	1.	Gas: This represents the amount of computational work required to execute the transaction. It depends on the complexity of the operation (e.g., calling a smart contract, swapping tokens).
+	2.	Gas Price: This indicates the price per unit of gas in Gwei. It determines how much ETH you’re willing to pay for each unit of gas.
+	3.	From = None: Since this is a read-only call (simulation) to fetch price (using .call()), you don’t need to specify a from address. This is fine in this context.
+	4.	Value = Some(0): This refers to the amount of ETH sent along with the transaction. Since you are only fetching data (not making a swap or sending ETH), 0 ETH is correct.
+
+If this were a live transaction, specifying from, gas, and gas price would be mandatory. But for a simulation (call()), the current setup is valid.
+     */
+
+    debug!("fee_tier: {}", fee_tier);
+    debug!("amount_in: {}", amount_in);
+    debug!("No price limit:  0");
+    debug!("router: {:?}", router);
+    debug!("Call Data (Hex): {:?}", hex::encode(&call_data));
 
     let tx = TransactionRequest::new()
         .to(router)
@@ -634,16 +686,35 @@ async fn fetch_price(
         .gas(U256::from(1_000_000))
         .value(U256::zero());
 
+    debug!("Provider: {:?}", tx);
+
+    let (token_out_name, token_out_decimals) = get_token_info(&token_out);
+
     match provider.call(&tx.into(), None).await {
         Ok(res) => {
-            if res.len() >= 32 {
-                let price = U256::from_big_endian(&res[0..32]);
-                info!("💱 {} Price: {}", dex_name, price);
-                Some(price)
+            debug!("🔍 Raw Response: {:?}", res); // Inspect the raw response
+
+            let price = if res.len() >= 128 {
+                // Uniswap V2 (dynamic array)
+                println!("🔍 Decoding Uniswap V2 response...");
+                U256::from_big_endian(&res[96..128])
+            } else if res.len() >= 32 {
+                // Uniswap V3 (direct output)
+                println!("🔍 Decoding Uniswap V3 response...");
+                U256::from_big_endian(&res[0..32])
             } else {
-                warn!("❌ {} response too short: {:?}", dex_name, res);
-                None
-            }
+                println!("❌ Response too short or unexpected format: {:?}", res);
+                return None;
+            };
+    
+            println!("token_out_decimals: {:?}", token_out_decimals);
+    
+            let normalized_price = price.checked_div(U256::exp10(token_out_decimals as usize))
+                .unwrap_or(U256::zero());
+    
+            println!("💱 {}, Price {}: {} | Raw Price: {:?}", dex_name, token_out_name, normalized_price, price);
+    
+            Some(normalized_price)
         }
         Err(e) => {
             error!("❌ {} call failed: {:?}", dex_name, e);
@@ -652,29 +723,32 @@ async fn fetch_price(
     }
 }
 
-// Mapping token addresses to their names
-fn get_token_name(address: &Address) -> String {
-    let token_map: HashMap<Address, &str> = HashMap::from([
-        ("0x2eaa73bd0db20c64f53febea7b5f5e5bccc7fb8b".parse().unwrap(), "ETH"),
-        ("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".parse().unwrap(), "WETH"),
-        ("0x514910771AF9Ca656af840dff83E8264EcF986CA".parse().unwrap(), "LINK"),
-        ("0x163f8C2467924be0ae7B5347228CABF260318753".parse().unwrap(), "WLD"),
-        ("0xfAbA6f8e4a5E8Ab82F62fe7C39859FA577269BE3".parse().unwrap(), "ONDO"),
-        ("0x57e114B691Db790C35207b2e685D4A43181e6061".parse().unwrap(), "ENA"),
-        ("0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE".parse().unwrap(), "SHIB"),
-        ("0x6982508145454Ce325dDbE47a25d4ec3d2311933".parse().unwrap(), "PEPE"),
-        ("0x4C1746A800D224393fE2470C70A35717eD4eA5F1".parse().unwrap(), "PLUME"),
-        ("0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C".parse().unwrap(), "SPX"),
-        ("0xaaeE1A9723aaDB7afA2810263653A34bA2C21C7a".parse().unwrap(), "MOG"),
-        ("0xA2cd3D43c775978A96BdBf12d733D5A1ED94fb18".parse().unwrap(), "XCN"),
-        ("0xdac17f958d2ee523a2206206994597c13d831ec7".parse().unwrap(), "USDT"),
-        ("0x6b3595068778dd592e39a122f4f5a5cf09c90fe2".parse().unwrap(), "SUSHI"),
-        ("0x2260fac5e5542a773aa44fbcfedf7c193bc2c599".parse().unwrap(), "WBTC"),
-        ("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48".parse().unwrap(), "USDC"),
-        ("0x6b175474e89094c44da98b954eedeac495271d0f".parse().unwrap(), "DAI"),
+/// Mapping token addresses to their token name and decimals
+fn get_token_info(address: &Address) -> (String, u8) {
+    let token_map: HashMap<Address, (&str, u8)> = HashMap::from([
+        ("0x2eaa73bd0db20c64f53febea7b5f5e5bccc7fb8b".parse().unwrap(), ("ETH", 18)),
+        ("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".parse().unwrap(), ("WETH", 18)),
+        ("0x514910771AF9Ca656af840dff83E8264EcF986CA".parse().unwrap(), ("LINK", 18)),
+        ("0x163f8C2467924be0ae7B5347228CABF260318753".parse().unwrap(), ("WLD", 18)),
+        ("0xfAbA6f8e4a5E8Ab82F62fe7C39859FA577269BE3".parse().unwrap(), ("ONDO", 18)),
+        ("0x57e114B691Db790C35207b2e685D4A43181e6061".parse().unwrap(), ("ENA", 18)),
+        ("0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE".parse().unwrap(), ("SHIB", 18)),
+        ("0x6982508145454Ce325dDbE47a25d4ec3d2311933".parse().unwrap(), ("PEPE", 18)),
+        ("0x4C1746A800D224393fE2470C70A35717eD4eA5F1".parse().unwrap(), ("PLUME", 18)),
+        ("0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C".parse().unwrap(), ("SPX", 8)),
+        ("0xaaeE1A9723aaDB7afA2810263653A34bA2C21C7a".parse().unwrap(), ("MOG", 18)),
+        ("0xA2cd3D43c775978A96BdBf12d733D5A1ED94fb18".parse().unwrap(), ("XCN", 18)),
+        ("0xdac17f958d2ee523a2206206994597c13d831ec7".parse().unwrap(), ("USDT", 6)),
+        ("0x6b3595068778dd592e39a122f4f5a5cf09c90fe2".parse().unwrap(), ("SUSHI", 18)),
+        ("0x2260fac5e5542a773aa44fbcfedf7c193bc2c599".parse().unwrap(), ("WBTC", 8)),
+        ("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48".parse().unwrap(), ("USDC", 6)),
+        ("0x6b175474e89094c44da98b954eedeac495271d0f".parse().unwrap(), ("DAI", 18)),
     ]);
 
-    token_map.get(address).unwrap_or(&"Unknown").to_string()
+    match token_map.get(address) {
+        Some(&(name, decimals)) => (name.to_string(), decimals),
+        None => ("NotListed".to_string(), 18), // Default to 18 decimals for unknown tokens
+    }
 }
 
 /// Fetch the real-time price of a trading pair from Binance
