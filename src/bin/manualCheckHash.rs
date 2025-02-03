@@ -722,21 +722,28 @@ If this were a live transaction, specifying from, gas, and gas price would be ma
         
         Ok(res) => {
             println!("🔍 Raw Response: {:?}", res); // Inspect the raw response
-            if res.len() >= 128 {
-                // First 32 bytes: offset to the array, next 32 bytes: array length, next 64 bytes: outputs
-                let price = U256::from_big_endian(&res[96..128]);
-                println!("token_out_decimals: {:?}", token_out_decimals);
 
-                let normalized_price = price.checked_div(U256::exp10(token_out_decimals as usize))
-                .unwrap_or(U256::zero());
-
-                println!("💱 {}, Price {}: {} | RP: {:?}", dex_name, token_out_name, normalized_price,price);
-
-                Some(normalized_price)
+            let price = if res.len() >= 128 {
+                // Uniswap V2 (dynamic array)
+                println!("🔍 Decoding Uniswap V2 response...");
+                U256::from_big_endian(&res[96..128])
+            } else if res.len() >= 32 {
+                // Uniswap V3 (direct output)
+                println!("🔍 Decoding Uniswap V3 response...");
+                U256::from_big_endian(&res[0..32])
             } else {
-                println!("❌ {} response too short: {:?}", dex_name, res);
-                None
-            }
+                println!("❌ Response too short or unexpected format: {:?}", res);
+                return None;
+            };
+    
+            println!("token_out_decimals: {:?}", token_out_decimals);
+    
+            let normalized_price = price.checked_div(U256::exp10(token_out_decimals as usize))
+                .unwrap_or(U256::zero());
+    
+            println!("💱 {}, Price {}: {} | Raw Price: {:?}", dex_name, token_out_name, normalized_price, price);
+    
+            Some(normalized_price)
         }
         Err(e) => {
             println!("❌ {} call failed: {:?}", dex_name, e);
