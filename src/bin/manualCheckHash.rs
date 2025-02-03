@@ -193,6 +193,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
                         let (token_in_name, _) = get_token_info(&token_in);
                         let (token_out_name, _) = get_token_info(&token_out);
+                        
                     
                         // Check if token is listed
                         if !allowed_tokens.contains(&token_in) {
@@ -213,9 +214,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             println!("🪙 Token Out: {:?}", token_out_name);
                             println!("💰 Amount In: {:?}", amount_in);
                             println!("👤 Recipient: {:?}", recipient);
-
+                            
                             let amount_in = U256::from_dec_str("1000000000000000000")?; //replace with hardcode
-
+                            let amount_in = U256::from(1e18 as u64);  // or adapt based on token decimals
                             // Define call data
                             /* 
                             let path = vec![Token::Address(token_in), Token::Address(token_out)];
