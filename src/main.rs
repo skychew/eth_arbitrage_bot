@@ -176,7 +176,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     addresses.iter().any(|(dex_address, _)| dex_address == &address)
                 }) {
                     ARBITRAGE_COUNT.fetch_add(1, Ordering::SeqCst);
-                    info!("++Listed DEX Router found!: {} (Address: {:?})", detected_dex_name, to);
+                    info!("++Listed DEX Router found!: {} (Address: {:?})", detected_dex_name, address);
                     info!("Hash : {:?}", tx_hash);
                     info!("From : {:?}", transaction.from);
                     info!("To   : {:?}", transaction.to);
