@@ -722,9 +722,9 @@ If this were a live transaction, specifying from, gas, and gas price would be ma
         
         Ok(res) => {
             println!("🔍 Raw Response: {:?}", res); // Inspect the raw response
-            if res.len() >= 96 {
+            if res.len() >= 128 {
                 // First 32 bytes: offset to the array, next 32 bytes: array length, next 64 bytes: outputs
-                let price = U256::from_big_endian(&res[64..96]);
+                let price = U256::from_big_endian(&res[96..128]);
                 println!("token_out_decimals: {:?}", token_out_decimals);
 
                 let normalized_price = price.checked_div(U256::exp10(token_out_decimals as usize))
