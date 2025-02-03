@@ -725,7 +725,7 @@ If this were a live transaction, specifying from, gas, and gas price would be ma
             if res.len() >= 32 {
                 let price = U256::from_big_endian(&res[0..32]);
                 let normalized_price = price / U256::from(10u64.pow(token_out_decimals as u32));
-                println!("💱 {}, Price {}: {} | RP: {}", dex_name, token_out_name, normalized_price,price);
+                println!("💱 {}, Price {}: {} | RP: {:?}", dex_name, token_out_name, normalized_price,price);
 
                 Some(normalized_price)
             } else {
