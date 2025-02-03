@@ -654,7 +654,7 @@ async fn fetch_price(
             Token::Address(token_in),
             Token::Address(token_out),
             Token::Uint(U256::from(fee_tier)),
-            Token::Uint(U256::from(1e18 as u64)),
+            Token::Uint(amount_in),
             Token::Uint(U256::zero()),  // sqrtPriceLimitx96 :No price limit
         ]);
         [function_selector, encoded_params].concat()
