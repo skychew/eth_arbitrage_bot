@@ -490,7 +490,7 @@ fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256
 
 /// 💰 Simulate arbitrage opportunity based on detected DEX transaction
 fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, amount_in: U256) -> Result<(), Box<dyn std::error::Error>> {
-    let gas_fee_eth = U256::from(1_000_000_000_000_000u64); // Example gas fee in wei (0.001 ETH)
+    let gas_fee_eth = U256::from(1_000_000_u64); // Example gas fee in wei (0.000001 ETH)
 
     if let (Some(sushi), Some(uni)) = (sushi_price, uniswap_price) {
         println!("Starting Simulate Arbitrage...");
