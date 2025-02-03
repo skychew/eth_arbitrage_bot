@@ -722,6 +722,7 @@ If this were a live transaction, specifying from, gas, and gas price would be ma
     match provider.call(&tx.into(), None).await {
         
         Ok(res) => {
+            println!("🔍 Raw Response: {:?}", res); // Inspect the raw response
             if res.len() >= 32 {
                 let price = U256::from_big_endian(&res[0..32]);
                 let normalized_price = price / U256::from(10u64.pow(token_out_decimals as u32));
