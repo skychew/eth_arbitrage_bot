@@ -211,14 +211,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
                             let (_, token_in_decimals) = get_token_info(&token_in);
                             let amount_in = U256::from(10u64.pow(token_in_decimals as u32));
-                            
+
                             println!("✅ Listed Tokens. Starting Arbitrage Sim!");
                             println!("🪙 Token In: {:?}", token_in_name);
                             println!("🪙 Token Out: {:?}", token_out_name);
                             println!("💰 Amount In: {:?}", amount_in);
                             println!("👤 Recipient: {:?}", recipient);
-                            
-
 
                             let mut prices = vec![];
                             
