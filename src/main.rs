@@ -183,7 +183,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     info!("AMT ETH: {} ETH", format_ether(transaction.value));
 
                     // Decode transaction input
-                    if let Some((token_in, token_out, amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
+                    //_amount_in is probably too large so we overide it
+                    if let Some((token_in, token_out, _amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
                         let (token_in_name, _) = get_token_info(&token_in);
                         let (token_out_name, _) = get_token_info(&token_out);
                     
@@ -202,7 +203,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     
                         if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
                             let (_, token_in_decimals) = get_token_info(&token_in);
-                            let amount_in = U256::from(10u64.pow(token_in_decimals as u32));
+                            let amount_in = U256::from(2) * U256::exp10(token_in_decimals as usize);
 
                             info!("✅ Listed Tokens. Starting Arbitrage Sim!");
                             info!("🪙 Token In: {:?}", token_in_name);
