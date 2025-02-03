@@ -170,7 +170,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             REVIEW_COUNT.fetch_add(1, Ordering::SeqCst);
 
             // Check if either `to` or `from` exists and is a DEX address
-            if let Some(address) = transaction.to.or(transaction.from) {
+            if let Some(address) = transaction.to.or(Some(transaction.from)) {
                 
                 if let Some((detected_dex_name, _)) = dex_groups.iter().find(|(_, addresses)| {
                     addresses.iter().any(|(dex_address, _)| dex_address == &address)
