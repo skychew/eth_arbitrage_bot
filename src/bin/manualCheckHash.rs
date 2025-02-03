@@ -193,7 +193,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if let Some((token_in, token_out, _amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
                         let (token_in_name, _) = get_token_info(&token_in);
                         let (token_out_name, _) = get_token_info(&token_out);
-                        
                     
                         // Check if token is listed
                         if !allowed_tokens.contains(&token_in) {
@@ -726,7 +725,7 @@ If this were a live transaction, specifying from, gas, and gas price would be ma
             if res.len() >= 32 {
                 let price = U256::from_big_endian(&res[0..32]);
                 let normalized_price = price / U256::from(10u64.pow(token_out_decimals as u32));
-                println!("💱 {}, Price {}: {}", dex_name, token_out_name, normalized_price);
+                println!("💱 {}, Price {}: {} | RP: {}", dex_name, token_out_name, normalized_price,price);
 
                 Some(normalized_price)
             } else {
