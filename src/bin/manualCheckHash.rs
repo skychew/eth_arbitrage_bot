@@ -493,7 +493,7 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
     let gas_fee_eth = U256::from(1_000_000_u64); // Example gas fee in wei (0.000001 ETH)
 
     if let (Some(sushi), Some(uni)) = (sushi_price, uniswap_price) {
-        println!("Starting Simulate Arbitrage...");
+        println!("Starting Simulate Arbitrage. GasEth: {}, Sushi: {}, Uni: {}", gas_fee_eth, sushi, uni);
         if sushi > uni {
             let profit = sushi.checked_sub(uni).unwrap_or_default().checked_sub(gas_fee_eth).unwrap_or_default();
             if profit > U256::zero() {
