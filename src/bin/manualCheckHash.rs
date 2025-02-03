@@ -725,9 +725,11 @@ async fn fetch_price(
 If this were a live transaction, specifying from, gas, and gas price would be mandatory. But for a simulation (call()), the current setup is valid.
      */
     println!("Provider: {:?}", tx);
-  
+    
+    let (token_out_name, token_out_decimals) = get_token_info(&token_out);
+
     match provider.call(&tx.into(), None).await {
-        let (token_out_name, token_out_decimals) = get_token_info(&token_out);
+        
         Ok(res) => {
             if res.len() >= 32 {
                 let price = U256::from_big_endian(&res[0..32]);
