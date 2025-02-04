@@ -172,14 +172,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             REVIEW_COUNT.fetch_add(1, Ordering::SeqCst);
 
             // Check both `to` and `from` addresses for the router address.
-            if let Some(detected_dex_name) = [transaction.to, Some(transaction.from)]
+            if let Some((detected_dex_name, matching_address)) = [transaction.to, Some(transaction.from)]
                 .into_iter()
                 .flatten() // Filter out `None` values
                 .find_map(|address| {
                     dex_groups.iter().find_map(|(dex_name, addresses)| {
                         //Closure a type of mini function
                         if addresses.iter().any(|(dex_address, _)| dex_address == &address) {
-                            Some(dex_name) // Return the detected DEX name
+                            Some((dex_name, address)) // Return both dex_name and address
                         } else {
                              None
                         }
