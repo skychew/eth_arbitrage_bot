@@ -30,6 +30,7 @@ use serde_json::Value;
 // Global counters
 static API_TX_COUNT: AtomicUsize = AtomicUsize::new(0);
 static REVIEW_COUNT: AtomicUsize = AtomicUsize::new(0);
+static ADDRESS_COUNT: AtomicUsize = AtomicUsize::new(0);
 static ARBITRAGE_COUNT: AtomicUsize = AtomicUsize::new(0);
 static API_TX_FAIL_COUNT: AtomicUsize = AtomicUsize::new(0);
 static SUCCESS_COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -140,9 +141,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         debug!("Tx Hash: {:?}",tx_hash); 
         hash_count += 1; 
         //Tx only counts fetch_transaction and fetch_price
-        print!("\rHash#: {} | Review#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
+        print!("\rHash#: {} | Review#: {} | ADD#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
         hash_count, 
         REVIEW_COUNT.load(Ordering::SeqCst), 
+        ADDRESS_COUNT.fetch_add(1, Ordering::SeqCst),
         ARBITRAGE_COUNT.load(Ordering::SeqCst), 
         API_TX_COUNT.load(Ordering::SeqCst), 
         API_TX_FAIL_COUNT.load(Ordering::SeqCst),
@@ -171,7 +173,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             // Check if either `to` or `from` exists and is a DEX address
             if let Some(address) = transaction.to.or(Some(transaction.from)) {
-                
+                ADDRESS_COUNT.fetch_add(1, Ordering::SeqCst);
+
                 if let Some((detected_dex_name, _)) = dex_groups.iter().find(|(_, addresses)| {
                     addresses.iter().any(|(dex_address, _)| dex_address == &address)
                 }) {
