@@ -175,7 +175,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             REVIEW_COUNT.fetch_add(1, Ordering::SeqCst);
 
             // Check both `to` and `from` addresses for the router address.
-            if let Some((detected_dex_name, matching_address)) = [transaction.to, Some(transaction.from)]
+            if let Some((detected_dex_name_inner, matching_address)) = [transaction.to, Some(transaction.from)]
                 .into_iter()
                 .flatten() // Filter out `None` values
                 .find_map(|address| {
@@ -190,7 +190,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 })
             {
                 arbitrage_detected = true;
-                detected_dex_name = detected_dex_name;
+                detected_dex_name = detected_dex_name_inner;
                 matching_address = matching_address.unwrap();
             }
             if let Some(to) = transaction.to {
