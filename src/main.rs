@@ -191,7 +191,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             {
                 arbitrage_detected = true;
                 detected_dex_name = detected_dex_name_inner.to_string();
-                matching_address =some(m_address);
+                matching_address =Some(m_address);
             }
             if let Some(to) = transaction.to {
                 
