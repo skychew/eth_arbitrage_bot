@@ -169,6 +169,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             AMT ETH will be 0 if no ethereum transffered. But there will sometimes be value even if the transfer tokens doest not have Eth. It could be payments for the gas fee.
         */
         let mut arbitrage_detected = false;
+        let mut detected_dex_name = String::new();
+        let mut matching_address = None;
         if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash, rate_limiter.clone()).await {
             REVIEW_COUNT.fetch_add(1, Ordering::SeqCst);
 
@@ -188,6 +190,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 })
             {
                 arbitrage_detected = true;
+                detected_dex_name = dex_name.clone();
+                matching_address = Some(address);
             }
             if let Some(to) = transaction.to {
                 
