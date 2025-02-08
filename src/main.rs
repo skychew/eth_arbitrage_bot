@@ -182,7 +182,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     dex_groups.iter().find_map(|(dex_name, addresses)| {
                         //Closure a type of mini function
                         if addresses.iter().any(|(dex_address, _)| dex_address == &address) {
-                            Some((dex_name, address)) // Return both dex_name and address
+                            Some((dex_name.clone(), address)) // Return both dex_name and address
                         } else {
                              None
                         }
@@ -190,12 +190,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 })
             {
                 arbitrage_detected = true;
-                detected_dex_name = dex_name;
-                matching_address = Some(address);
+                detected_dex_name = detected_dex_name.to_string();;
+                matching_address = Some(matching_address);
             }
             if let Some(to) = transaction.to {
                 
-                if let Some((detected_dex_name, matching_address)) = dex_groups.iter().find(|(_, addresses)| {
+                if let Some((dex_name, _)) = dex_groups.iter().find(|(_, addresses)| {
                     addresses.iter().any(|(address, _)| address == &to)
                 }) {
                     arbitrage_detected = true;
