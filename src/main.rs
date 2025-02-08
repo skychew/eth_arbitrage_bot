@@ -190,7 +190,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 })
             {
                 arbitrage_detected = true;
-                detected_dex_name = dex_name.clone();
+                detected_dex_name = dex_name;
                 matching_address = Some(address);
             }
             if let Some(to) = transaction.to {
@@ -199,6 +199,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     addresses.iter().any(|(address, _)| address == &to)
                 }) {
                     arbitrage_detected = true;
+                    detected_dex_name = dex_name.clone();
+                    matching_address = Some(to);
                 }
             }
             if arbitrage_detected {
