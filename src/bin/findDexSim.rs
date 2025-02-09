@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut arbitrage_detected = false;
     let mut detected_dex_name = String::new();
     let mut matching_address = None;
-    if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash, rate_limiter.clone()).await {
+    if let Some(transaction) = transaction {
         REVIEW_COUNT.fetch_add(1, Ordering::SeqCst);
 
         // Check both `to` and `from` addresses for the router address.
