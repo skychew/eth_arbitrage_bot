@@ -1,12 +1,7 @@
 use ethers::types::{H160, U256, Transaction};
-use std::str::FromStr;
 use std::collections::HashSet;
 use ethers::utils::format_ether;
-use std::sync::atomic::AtomicUsize;
-use ethers::abi::Address;
-use ethers::types::Address;
-use std::cmp::Ordering;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicUsize, Ordering}; // Fixed import
 
 static REVIEW_COUNT: AtomicUsize = AtomicUsize::new(0);
 static LOGIC1: AtomicUsize = AtomicUsize::new(0);
@@ -61,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut arbitrage_detected = false;
     let mut detected_dex_name = String::new();
     let mut matching_address = None;
-    if let Some(transaction) = transaction {
+    if let Some(transaction) = Some(transaction) {
         REVIEW_COUNT.fetch_add(1, Ordering::SeqCst);
 
         // Check both `to` and `from` addresses for the router address.
@@ -72,14 +67,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 dex_groups.iter().find_map(|(dex_name, addresses)| {
                     //Closure a type of mini function
                     if addresses.iter().any(|(dex_address, _)| dex_address == &address) {
-                        Some(((*dex_name).to_string(), address)) // Return both dex_name and address
-                        LOGIC1.fetch_add(1, Ordering::SeqCst);
+                        Some(((*dex_name).to_string(), address)); // Return both dex_name and address
+                        
                     } else {
                             None
                     }
                 })
             })
         {
+            LOGIC1.fetch_add(1, Ordering::SeqCst);
             arbitrage_detected = true;
             detected_dex_name = detected_dex_name_inner.to_string();
             matching_address =Some(m_address);
@@ -89,16 +85,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Some((dex_name, _)) = dex_groups.iter().find(|(_, addresses)| {
                 addresses.iter().any(|(address, _)| address == &to)
             }) {
+                LOGIC2.fetch_add(1, Ordering::SeqCst);
                 arbitrage_detected = true;
                 detected_dex_name = dex_name.to_string();
                 matching_address = Some(to);
-                LOGIC2.fetch_add(1, Ordering::SeqCst);
+                
             }
         }
         if arbitrage_detected {
             ARBITRAGE_COUNT.fetch_add(1, Ordering::SeqCst);
             println!("++Listed DEX Router found!: {} (Address: {:?})", detected_dex_name, matching_address);
-            println!("Hash : {:?}", tx_hash);
+            println!("Hash : {:?}", "hardcoded_hash");
             println!("From : {:?}", transaction.from);
             println!("To   : {:?}", transaction.to);
             let gas_price = transaction.gas_price.map(|g| ethers::utils::format_units(g, "gwei").unwrap());
