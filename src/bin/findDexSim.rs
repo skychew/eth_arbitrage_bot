@@ -2,6 +2,7 @@ use ethers::types::{H160, U256, Transaction};
 use std::collections::HashSet;
 use ethers::utils::format_ether;
 use std::sync::atomic::{AtomicUsize, Ordering}; // Fixed import
+use ethers::abi::Address;
 
 static REVIEW_COUNT: AtomicUsize = AtomicUsize::new(0);
 static LOGIC1: AtomicUsize = AtomicUsize::new(0);
