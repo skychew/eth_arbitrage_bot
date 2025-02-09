@@ -68,7 +68,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 dex_groups.iter().find_map(|(dex_name, addresses)| {
                     //Closure a type of mini function
                     if addresses.iter().any(|(dex_address, _)| dex_address == &address) {
-                        Some(((*dex_name).to_string(), address)); // Return both dex_name and address
+                        Some(((*dex_name).to_string(), address)) // Return both dex_name and address
                         
                     } else {
                             None
