@@ -1,3 +1,13 @@
+use ethers::types::{H160, U256, Transaction};
+use std::str::FromStr;
+use std::collections::HashSet;
+use ethers::utils::format_ether;
+
+static REVIEW_COUNT: AtomicUsize = AtomicUsize::new(0);
+static LOGIC1: AtomicUsize = AtomicUsize::new(0);
+static LOGIC2: AtomicUsize = AtomicUsize::new(0);
+static ARBITRAGE_COUNT: AtomicUsize = AtomicUsize::new(0);
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment variables
@@ -58,6 +68,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     //Closure a type of mini function
                     if addresses.iter().any(|(dex_address, _)| dex_address == &address) {
                         Some(((*dex_name).to_string(), address)) // Return both dex_name and address
+                        LOGIC1.fetch_add(1, Ordering::SeqCst);
                     } else {
                             None
                     }
@@ -76,6 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 arbitrage_detected = true;
                 detected_dex_name = dex_name.to_string();
                 matching_address = Some(to);
+                LOGIC2.fetch_add(1, Ordering::SeqCst);
             }
         }
         if arbitrage_detected {
@@ -87,6 +99,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let gas_price = transaction.gas_price.map(|g| ethers::utils::format_units(g, "gwei").unwrap());
             println!("Gas Price: {} Gwei", gas_price.unwrap_or_else(|| "unknown".to_string()));
             println!("AMT ETH: {} ETH", format_ether(transaction.value));
+            println!("Review Count: {} | Logic1: {} | Logic2: {} | Arbitrage: {}",
+             REVIEW_COUNT.load(Ordering::SeqCst), 
+             LOGIC1.load(Ordering::SeqCst), 
+             LOGIC2.load(Ordering::SeqCst), 
+             ARBITRAGE_COUNT.load(Ordering::SeqCst)
+            );
         }
     }
 
