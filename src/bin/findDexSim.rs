@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
        
     // Define the list of allowed token addresses
-    let allowed_tokens: HashSet<Address> = HashSet::from([
+    let _allowed_tokens: HashSet<Address> = HashSet::from([
         "0x2eaa73bd0db20c64f53febea7b5f5e5bccc7fb8b".parse().unwrap(), // ETH
         "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".parse().unwrap(), // WETH
         "0x514910771AF9Ca656af840dff83E8264EcF986CA".parse().unwrap(), // LINK
