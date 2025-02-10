@@ -175,7 +175,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             REVIEW_COUNT.fetch_add(1, Ordering::SeqCst);
 
             if let Some(to) = transaction.to {
-                
+                ADDRESS_COUNT.fetch_add(1, Ordering::SeqCst);
                 if let Some((detected_dex_name, matching_address)) = dex_groups.iter().find(|(_, addresses)| {
                     addresses.iter().any(|(address, _)| address == &to)
                 }) {
