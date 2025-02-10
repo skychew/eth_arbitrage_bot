@@ -32,6 +32,7 @@ static API_TX_COUNT: AtomicUsize = AtomicUsize::new(0);
 static REVIEW_COUNT: AtomicUsize = AtomicUsize::new(0);
 static ADDRESS_COUNT: AtomicUsize = AtomicUsize::new(0);
 static ARBITRAGE_COUNT: AtomicUsize = AtomicUsize::new(0);
+static TODEX_COUNT: AtomicUsize = AtomicUsize::new(0);
 static API_TX_FAIL_COUNT: AtomicUsize = AtomicUsize::new(0);
 static SUCCESS_COUNT: AtomicUsize = AtomicUsize::new(0);
 static RETRY_COUNT: AtomicUsize = AtomicUsize::new(0);
