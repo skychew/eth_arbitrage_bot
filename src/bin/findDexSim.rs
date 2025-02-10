@@ -1,3 +1,10 @@
+/*
+Check the "from" and "to" addresses of a transaction for known DEX router addresses.
+///Conclusions:
+/// From address is not necessary to check if the transaction is an arbitrage
+///  because the router address is always the "to" address.
+/// 
+*/
 use ethers::types::{H160, U256, Transaction};
 use std::collections::HashSet;
 use ethers::utils::format_ether;
@@ -46,6 +53,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ]),
     ];
         //hardcode transaction to check
+        
+
     let transaction = Transaction {
         to: Some("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D".parse::<H160>().unwrap()), // Uniswap V2
         from: "0x6b175474e89094c44da98b954eedeac495271d0f".parse::<H160>().unwrap(),
