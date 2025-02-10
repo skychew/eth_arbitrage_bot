@@ -127,11 +127,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     debug!("📡 Fetching valid trading pairs from Binance...");
     let valid_pairs = fetch_valid_pairs().await?;
 
-    // Spawn a task to periodically print the counter - this was overlapping the hashcount print.
-    /* 
+// Spawn a task to periodically print the counter - this was overlapping the hashcount print.
+/* 
     tokio::spawn(async move {
         loop {
-            print!("\r            | API Tx: {}", API_TX_COUNT.load(Ordering::SeqCst));
+            print!("\r| API Tx: {}", API_TX_COUNT.load(Ordering::SeqCst));
             io::stdout().flush().unwrap(); // Ensure the line updates immediately
             sleep(Duration::from_secs(300)).await;
         }
@@ -141,11 +141,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         debug!("Tx Hash: {:?}",tx_hash); 
         hash_count += 1; 
         //Tx only counts fetch_transaction and fetch_price
-        print!("\rHash#: {} | Review#: {} | ADD#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
+        print!("\rHash#: {} | Review#: {} | ADD#: {} | Abtrg#: {} | ToDeX#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
         hash_count, 
         REVIEW_COUNT.load(Ordering::SeqCst), 
         ADDRESS_COUNT.fetch_add(1, Ordering::SeqCst),
-        ARBITRAGE_COUNT.load(Ordering::SeqCst), 
+        ARBITRAGE_COUNT.load(Ordering::SeqCst),
+        TODEX_COUNT.load(Ordering::SeqCst), 
         API_TX_COUNT.load(Ordering::SeqCst), 
         API_TX_FAIL_COUNT.load(Ordering::SeqCst),
         SUCCESS_COUNT.load(Ordering::SeqCst),
@@ -812,8 +813,12 @@ async fn fetch_valid_pairs() -> Result<HashSet<String>, Box<dyn Error>> {
     }
 }
 
+<<<<<<< HEAD
+/*========== 📚 Ethereum Arbitrage Detection Bot v1.0 ===========
+=======
 /*
 📚 Ethereum Arbitrage Detection Bot v1.0
+>>>>>>> 362628db1a718d3e6125a277e67741735a0c7fec
 
 🎯 Purpose:
 This bot connects to the Ethereum network in real-time and listens for pending transactions. It identifies transactions related to decentralized exchanges (DEXs) like Uniswap and SushiSwap, decodes them, and simulates potential arbitrage opportunities by comparing token prices between different DEXs.
@@ -843,4 +848,8 @@ This bot connects to the Ethereum network in real-time and listens for pending t
 - V4: Multi-network arbitrage opportunities.
 - V5: Enhanced profit calculation (gas fees, slippage, etc.).
 
+<<<<<<< HEAD
+============ */
+=======
 */
+>>>>>>> 362628db1a718d3e6125a277e67741735a0c7fec
