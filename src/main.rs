@@ -813,12 +813,8 @@ async fn fetch_valid_pairs() -> Result<HashSet<String>, Box<dyn Error>> {
     }
 }
 
-<<<<<<< HEAD
-/*========== 📚 Ethereum Arbitrage Detection Bot v1.0 ===========
-=======
-/*
+/* ========== 📚 Ethereum Arbitrage Detection Bot v1.0 ===========
 📚 Ethereum Arbitrage Detection Bot v1.0
->>>>>>> 362628db1a718d3e6125a277e67741735a0c7fec
 
 🎯 Purpose:
 This bot connects to the Ethereum network in real-time and listens for pending transactions. It identifies transactions related to decentralized exchanges (DEXs) like Uniswap and SushiSwap, decodes them, and simulates potential arbitrage opportunities by comparing token prices between different DEXs.
@@ -848,8 +844,4 @@ This bot connects to the Ethereum network in real-time and listens for pending t
 - V4: Multi-network arbitrage opportunities.
 - V5: Enhanced profit calculation (gas fees, slippage, etc.).
 
-<<<<<<< HEAD
 ============ */
-=======
-*/
->>>>>>> 362628db1a718d3e6125a277e67741735a0c7fec
