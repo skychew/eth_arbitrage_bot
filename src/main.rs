@@ -813,44 +813,34 @@ async fn fetch_valid_pairs() -> Result<HashSet<String>, Box<dyn Error>> {
 }
 
 /*
-Understanding the Current Arbitrage Strategy
+📚 Ethereum Arbitrage Detection Bot v1.0
 
-The bot is designed to simulate arbitrage opportunities by monitoring pending Ethereum transactions and analyzing swaps on decentralized exchanges (DEXs) like Uniswap and SushiSwap.
+🎯 Purpose:
+This bot connects to the Ethereum network in real-time and listens for pending transactions. It identifies transactions related to decentralized exchanges (DEXs) like Uniswap and SushiSwap, decodes them, and simulates potential arbitrage opportunities by comparing token prices between different DEXs.
 
-V1 : Ethereum Mainnet, Eth based tokens only
-V2 :Other networks check sushiswap network selector list.
+🔍 Key Features:
+- Connects to Ethereum via WebSocket using Infura.
+- Monitors pending transactions and checks if they interact with known DEX router addresses.
+- Decodes swap transactions to identify tokens being traded and the involved amounts.
+- Simulates the potential arbitrage by comparing prices from Uniswap V2/V3 and SushiSwap.
+- Logs any profitable opportunities.
 
-Step-by-Step Breakdown of the Strategy
+🔧 Current Limitations:
+- Works only on Ethereum Mainnet for ETH-based tokens.
+- Scans transactions directly interacting with DEX routers (simple arbitrage).
+- No multi-hop or advanced contract-level interaction detection (planned for future versions).
 
-    1.	Subscribe to Pending Transactions
-	    •	The bot connects to the Ethereum mempool using a WebSocket provider (Infura) and listens for pending transactions.
-	    •	Every pending transaction hash is fetched and examined.
-    2.	Filter Transactions by DEX Router Addresses
-	    •	It checks if the transaction’s to address matches known DEX router addresses (e.g., Uniswap V2/V3 or SushiSwap routers).
-	    •	If a transaction is sent "to" these routers, it’s likely a swap.
-        •	For Uniswap V3, the bot uses the Quoter contract address instead of the router address.
-        •	For Uniswap V2 and SushiSwap, the bot checks the to address directly.
-                •    It is not necessary to check the from address because the transaction is a swap, and the from address is the user’s wallet.
-	3.	Decode Swap Transactions
-	    •	The bot decodes the transaction input data to extract:
-        •	    Token In (token_in)
-        •	    Token Out (token_out)
-        •	    Amount In (amount_in)
-        •	    Recipient (recipient)
-        •	It handles functions like:
-            •	exactInput
-            •	exactOutput
-            •	exactInputSingle
-            •	exactOutputSingle
-	4.	Simulate Arbitrage
-	    •	For detected swaps, the bot tries to simulate a trade on multiple DEXs (Uniswap and SushiSwap) by calling the call method (which doesn’t execute transactions but simulates them).
-	    •	It encodes the swap call to fetch the expected output price on each DEX.
-	    •	It compares the simulated buy price and sell price across the DEXs.
-	5.	Profit Calculation
-	    •	Profit is calculated as:
+🌱 Future Enhancements:
+- Support for multi-hop and internal contract call detection.
+- Integration with centralized exchanges (CEXs) to find CEX-DEX arbitrage.
+- Price simulation across multiple networks and tokens beyond ETH-based assets.
+- Improved profit calculations, factoring in gas costs and slippage.
 
-\text{Profit} = (\text{Sell Price} - \text{Buy Price}) - \text{Gas Cost}
+🚀 Version Progress:
+- V1: Ethereum Mainnet, ETH-based tokens only.
+- V2: Basic to-address detection for simple DEX arbitrage.
+- V3: CEX and DEX interaction.
+- V4: Multi-network arbitrage opportunities.
+- V5: Enhanced profit calculation (gas fees, slippage, etc.).
 
-	•	If the profit is positive, the bot logs that a profitable arbitrage opportunity exists.
-    NEXTTODO:
 */
