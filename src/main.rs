@@ -142,12 +142,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         debug!("Tx Hash: {:?}",tx_hash); 
         hash_count += 1; 
         //Tx only counts fetch_transaction and fetch_price
-        print!("\rHash#: {} | Review#: {} | ADD#: {} | Abtrg#: {} | ToDeX#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
+        print!("\rHash#: {} | Review#: {} | ADD#: {} | ToDeX#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
         hash_count, 
         REVIEW_COUNT.load(Ordering::SeqCst), 
         ADDRESS_COUNT.fetch_add(1, Ordering::SeqCst),
-        ARBITRAGE_COUNT.load(Ordering::SeqCst),
         TODEX_COUNT.load(Ordering::SeqCst), 
+        ARBITRAGE_COUNT.load(Ordering::SeqCst),
         API_TX_COUNT.load(Ordering::SeqCst), 
         API_TX_FAIL_COUNT.load(Ordering::SeqCst),
         SUCCESS_COUNT.load(Ordering::SeqCst),
