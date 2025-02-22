@@ -170,7 +170,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     while let Some(tx_hash) = stream.next().await {
         //check if we run out of infura credits
         match Some(tx_hash) {
-            Ok let Some(tx_hash) => {
+            Ok Some(tx_hash) => {
                 debug!("Tx Hash: {:?}",tx_hash); 
                 hash_count += 1; 
                 //Tx only counts fetch_transaction and fetch_price
