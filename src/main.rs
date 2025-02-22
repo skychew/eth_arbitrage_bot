@@ -7,6 +7,7 @@ use ethers::abi::{AbiParser, Abi, Token};
 use ethers::types::{Bytes, U256};
 use ethers::types::H160;
 
+use std::env;
 use std::sync::{Arc, Mutex};
 use std::error::Error;
 use std::collections::HashSet;
@@ -165,7 +166,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     debug!("📡 Fetching valid trading pairs from Binance...");
     let valid_pairs = fetch_valid_pairs().await?;
 
-    while let Some(tx_hash) = stream.next().await {
+    while let Some(tx_hash_result) = stream.next().await {
         //check if we run out of infura credits
         match tx_hash_result {
             Ok(tx_hash) => {
