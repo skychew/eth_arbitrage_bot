@@ -792,37 +792,7 @@ fn get_token_info(address: &Address) -> (String, u8) {
     }
 }
 
-
-struct InfuraManager {
-    urls: Vec<String>,
-    current_index: Mutex<usize>,
-}
-
-impl InfuraManager {
-    fn new() -> Self {
-        let urls = vec![
-            env::var("INFURA_WS_URL_1").expect("INFURA_WS_URL_1 must be set"),
-            env::var("INFURA_WS_URL_2").expect("INFURA_WS_URL_2 must be set"),
-            env::var("INFURA_WS_URL_3").expect("INFURA_WS_URL_3 must be set"),
-        ];
-        InfuraManager {
-            urls,
-            current_index: Mutex::new(0),
-        }
-    }
-
-    fn get_current_url(&self) -> String {
-        let index = *self.current_index.lock().unwrap();
-        self.urls[index].clone()
-    }
-
-    fn switch_url(&self) {
-        let mut index = self.current_index.lock().unwrap();
-        *index = (*index + 1) % self.urls.len();
-        info!("🔄 Switching to Infura URL: {}", self.urls[*index]);
-    }
-}
-
+/// Connect to Multiple Infura URLs (3)
 async fn connect_to_infura(manager: Arc<InfuraManager>) -> Result<Provider<Ws>, Box<dyn std::error::Error>> {
     loop {
         let ws_url = manager.get_current_url();
