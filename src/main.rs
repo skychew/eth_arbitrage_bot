@@ -41,12 +41,11 @@ static MINED_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 const DEFAULT: Option<u32> = None;
 
-//
+//allow multiple infura keys
 struct InfuraManager {
     urls: Vec<String>,
     current_index: Mutex<usize>,
 }
-
 impl InfuraManager {
     fn new() -> Self {
         let urls = vec![
@@ -59,7 +58,6 @@ impl InfuraManager {
             current_index: Mutex::new(0),
         }
     }
-
     fn get_current_url(&self) -> String {
         let index = *self.current_index.lock().unwrap();
         self.urls[index].clone()
