@@ -158,7 +158,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("================= Connecting to Eth WebSocket: {}", ws_url);
     */
     let provider = Arc::new(provider);
-    info!("================= Connecting to Eth WebSocket: {}");
+    info!("================= Connecting to Eth WebSocket: {}", manager.get_current_url());
     let mut stream = provider.subscribe_pending_txs().await?;
     // Initialize the number of hash processsed
     let mut hash_count = 0;       
@@ -166,7 +166,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     debug!("📡 Fetching valid trading pairs from Binance...");
     let valid_pairs = fetch_valid_pairs().await?;
 
-    while let Some(tx_hash_result) = stream.next().await {
+    while let Some(tx_hash) = stream.next().await {
         //check if we run out of infura credits
       //  match tx_hash_result {
        //     Ok (tx_hash) => {
