@@ -40,6 +40,8 @@ static RETRY_COUNT: AtomicUsize = AtomicUsize::new(0);
 static RETRY_ERR_COUNT: AtomicUsize = AtomicUsize::new(0);
 static MINED_COUNT: AtomicUsize = AtomicUsize::new(0);
 
+// Uniswap V3 Quoter contract address
+const UNISWAP_V3_QUOTER: &str = "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6";
 const DEFAULT: Option<u32> = None;
 
 //allow multiple infura keys
@@ -137,8 +139,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             ("0xd9e1ce17f2641f24aE83637ab66a2cca9c378b9f".parse::<H160>().unwrap(), "SushiSwap"),
         ]),
     ];
-    // Uniswap V3 Quoter contract address
-    const UNISWAP_V3_QUOTER: &str = "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6";
+
 
     /* ======== Subscribe to pending transactions
     •	What It Does: This connects to the Ethereum mempool and listens for all pending transactions (those broadcast but not yet mined into a block).
