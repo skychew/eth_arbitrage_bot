@@ -155,9 +155,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Ethereum provider
     let ws_url = std::env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
     let provider = Provider::<Ws>::connect(ws_url).await?;
+    info!("================= Connecting to Eth WebSocket: {}", ws_url);
     */
     let provider = Arc::new(provider);
-    info!("================= Connecting to Eth WebSocket: {}", ws_url);
+    info!("================= Connecting to Eth WebSocket: {}");
     let mut stream = provider.subscribe_pending_txs().await?;
     // Initialize the number of hash processsed
     let mut hash_count = 0;       
@@ -167,9 +168,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     while let Some(tx_hash_result) = stream.next().await {
         //check if we run out of infura credits
-        match tx_hash_result {
-            Ok (tx_hash) => {
-                debug!("Tx Hash: {:?}",tx_hash); 
+      //  match tx_hash_result {
+       //     Ok (tx_hash) => {
+                info!("Tx Hash: {:?}",tx_hash); 
                 hash_count += 1; 
                 //Tx only counts fetch_transaction and fetch_price
                 print!("\rHash#: {} | Review#: {} | ADD#: {} | ToDeX#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
@@ -277,7 +278,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                 }
-            }
+    /*        }
             Err(e) => {
                 error!("❌ Stream error detected: {}. Switching to new Infura key...", e);
                 
@@ -290,7 +291,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Resubscribe to pending transactions
                 stream = provider.subscribe_pending_txs().await?;
             }
-        }//end match
+        }//end match*/
     }//end subscription stream
     Ok(())
 }//end main
