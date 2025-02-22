@@ -293,8 +293,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 stream = provider.subscribe_pending_txs().await?;
             }
         }//end match
-        Ok(())
     }//end subscription stream
+    Ok(())
 }//end main
 
 /* ======== Decode DEX swap transaction input data
