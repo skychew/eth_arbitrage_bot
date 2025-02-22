@@ -7,12 +7,11 @@ use ethers::abi::{AbiParser, Abi, Token};
 use ethers::types::{Bytes, U256};
 use ethers::types::H160;
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::error::Error;
 use std::collections::HashSet;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
 use std::fs::OpenOptions;
 use std::io::{self, Write}; // Required for flushing stdout
 
