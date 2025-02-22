@@ -170,13 +170,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         //check if we run out of infura credits
       //  match tx_hash_result {
        //     Ok (tx_hash) => {
-                info!("Tx Hash: {:?}",tx_hash); 
+                debug!("Tx Hash: {:?}",tx_hash); 
                 hash_count += 1; 
                 //Tx only counts fetch_transaction and fetch_price
-                print!("\rHash#: {} | Review#: {} | ADD#: {} | ToDeX#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
+                print!("\rHash#: {} | Review#: {} | ToDeX#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
                     hash_count, 
                     REVIEW_COUNT.load(Ordering::SeqCst), 
-                    ADDRESS_COUNT.fetch_add(1, Ordering::SeqCst),
+                    //ADDRESS_COUNT.fetch_add(1, Ordering::SeqCst),
                     TODEX_COUNT.load(Ordering::SeqCst), 
                     ARBITRAGE_COUNT.load(Ordering::SeqCst),
                     API_TX_COUNT.load(Ordering::SeqCst), 
@@ -191,9 +191,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 
                 if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash, rate_limiter.clone()).await {
                     REVIEW_COUNT.fetch_add(1, Ordering::SeqCst);
+                    debug!("Tx Hash: {:?}",tx_hash); 
 
                     if let Some(to) = transaction.to {
-                        ADDRESS_COUNT.fetch_add(1, Ordering::SeqCst);
                         if let Some((detected_dex_name, matching_address)) = dex_groups.iter().find(|(_, addresses)| {
                             addresses.iter().any(|(address, _)| address == &to)
                         }) {
@@ -275,8 +275,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     warn!("❌ Skipping...");
                                 }
                             }
-                        }
-                    }
+                        }//if detected dex name
+                    }// end let (to)
                 }
     /*        }
             Err(e) => {
@@ -789,24 +789,6 @@ fn get_token_info(address: &Address) -> (String, u8) {
     }
 }
 
-/// Connect to Multiple Infura URLs (3)
-async fn connect_to_infura(manager: Arc<InfuraManager>) -> Result<Provider<Ws>, Box<dyn std::error::Error>> {
-    loop {
-        let ws_url = manager.get_current_url();
-        match Ws::connect(&ws_url).await {
-            Ok(ws) => {
-                info!("🔗 Connected to Infura: {}", ws_url);
-                return Ok(Provider::new(ws));
-            }
-            Err(e) => {
-                error!("❌ Failed to connect: {}. Retrying with a different API key...", e);
-                manager.switch_url();
-                sleep(Duration::from_secs(2)).await; // Wait before retrying
-            }
-        }
-    }
-}
-
 /// Fetch the real-time price of a trading pair from Binance
 ///
 /// # Arguments:
@@ -858,6 +840,24 @@ async fn fetch_valid_pairs() -> Result<HashSet<String>, Box<dyn Error>> {
             response.status()
         )
         .into())
+    }
+}
+
+/// Connect to Multiple Infura URLs (3)
+async fn connect_to_infura(manager: Arc<InfuraManager>) -> Result<Provider<Ws>, Box<dyn std::error::Error>> {
+    loop {
+        let ws_url = manager.get_current_url();
+        match Ws::connect(&ws_url).await {
+            Ok(ws) => {
+                info!("🔗 Connected to Infura: {}", ws_url);
+                return Ok(Provider::new(ws));
+            }
+            Err(e) => {
+                error!("❌ Failed to connect: {}. Retrying with a different API key...", e);
+                manager.switch_url();
+                sleep(Duration::from_secs(2)).await; // Wait before retrying
+            }
+        }
     }
 }
 
