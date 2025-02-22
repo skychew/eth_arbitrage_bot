@@ -151,15 +151,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let manager = Arc::new(InfuraManager::new());
     // Attempt to connect to Infura
     let provider = connect_to_infura(manager.clone()).await?;
-    let provider = Arc::new(provider);
     /* 
     // Connect to Ethereum provider
     let ws_url = std::env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
-    info!("================= Connecting to Eth WebSocket: {}", ws_url);
     let provider = Provider::<Ws>::connect(ws_url).await?;
-    let provider = Arc::new(provider);
     */
-    info!("✅ Eth Node Connected, listening...");
+    let provider = Arc::new(provider);
+    info!("================= Connecting to Eth WebSocket: {}", ws_url);
     let mut stream = provider.subscribe_pending_txs().await?;
     // Initialize the number of hash processsed
     let mut hash_count = 0;       
@@ -169,7 +167,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     while let Some(tx_hash) = stream.next().await {
         //check if we run out of infura credits
-        match Some(tx_hash) {
+        match tx_hash {
             Ok (tx_hash) => {
                 debug!("Tx Hash: {:?}",tx_hash); 
                 hash_count += 1; 
