@@ -12,6 +12,7 @@ use std::error::Error;
 use std::collections::HashSet;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 use std::fs::OpenOptions;
 use std::io::{self, Write}; // Required for flushing stdout
 
@@ -39,9 +40,38 @@ static RETRY_COUNT: AtomicUsize = AtomicUsize::new(0);
 static RETRY_ERR_COUNT: AtomicUsize = AtomicUsize::new(0);
 static MINED_COUNT: AtomicUsize = AtomicUsize::new(0);
 
-/// Uniswap V3 Quoter contract address
-const UNISWAP_V3_QUOTER: &str = "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6";
 const DEFAULT: Option<u32> = None;
+
+//
+struct InfuraManager {
+    urls: Vec<String>,
+    current_index: Mutex<usize>,
+}
+
+impl InfuraManager {
+    fn new() -> Self {
+        let urls = vec![
+            env::var("INFURA_WS_URL_1").expect("INFURA_WS_URL_1 must be set"),
+            env::var("INFURA_WS_URL_2").expect("INFURA_WS_URL_2 must be set"),
+            env::var("INFURA_WS_URL_3").expect("INFURA_WS_URL_3 must be set"),
+        ];
+        InfuraManager {
+            urls,
+            current_index: Mutex::new(0),
+        }
+    }
+
+    fn get_current_url(&self) -> String {
+        let index = *self.current_index.lock().unwrap();
+        self.urls[index].clone()
+    }
+
+    fn switch_url(&self) {
+        let mut index = self.current_index.lock().unwrap();
+        *index = (*index + 1) % self.urls.len();
+        info!("🔄 Switching to Infura URL: {}", self.urls[*index]);
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -61,13 +91,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .target(Target::Pipe(Box::new(log_file)))
         .filter(None, LevelFilter::Info)
         .init();
-
-    // Connect to Ethereum provider
-    let ws_url = std::env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
-    info!("================= Connecting to Eth WebSocket: {}", ws_url);
-    let provider = Provider::<Ws>::connect(ws_url).await?;
-    let provider = Arc::new(provider);
-    info!("✅ Eth Node Connected, listening...");
 
     // Define the ABI signatures
     let abi = AbiParser::default()
@@ -105,6 +128,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48".parse().unwrap(), // USDC
         "0x6b175474e89094c44da98b954eedeac495271d0f".parse().unwrap(), // DAI
     ]);
+
     // Define the list of DEX router addresses
     let dex_groups = vec![
         ("Uniswap", vec![
@@ -115,12 +139,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             ("0xd9e1ce17f2641f24aE83637ab66a2cca9c378b9f".parse::<H160>().unwrap(), "SushiSwap"),
         ]),
     ];
+    // Uniswap V3 Quoter contract address
+    const UNISWAP_V3_QUOTER: &str = "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6";
+
 /* ======== Subscribe to pending transactions
 •	What It Does: This connects to the Ethereum mempool and listens for all pending transactions (those broadcast but not yet mined into a block).
 •	Key Points:
 •	The subscription provides transaction hashes, not full transaction details.
 •	The subscription stream should continue indefinitely, feeding new transaction hashes as they appear.
 =========== */
+    // Initialize InfuraManager
+    let manager = Arc::new(InfuraManager::new());
+    // Attempt to connect to Infura
+    let provider = connect_to_infura(manager.clone()).await?;
+    let provider = Arc::new(provider);
+    /* 
+    // Connect to Ethereum provider
+    let ws_url = std::env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
+    info!("================= Connecting to Eth WebSocket: {}", ws_url);
+    let provider = Provider::<Ws>::connect(ws_url).await?;
+    let provider = Arc::new(provider);
+    */
+    info!("✅ Eth Node Connected, listening...");
     let mut stream = provider.subscribe_pending_txs().await?;
     // Initialize the number of hash processsed
     let mut hash_count = 0;       
@@ -128,141 +168,135 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     debug!("📡 Fetching valid trading pairs from Binance...");
     let valid_pairs = fetch_valid_pairs().await?;
 
-// Spawn a task to periodically print the counter - this was overlapping the hashcount print.
-/* 
-    tokio::spawn(async move {
-        loop {
-            print!("\r| API Tx: {}", API_TX_COUNT.load(Ordering::SeqCst));
-            io::stdout().flush().unwrap(); // Ensure the line updates immediately
-            sleep(Duration::from_secs(300)).await;
-        }
-    });
-*/
+
     while let Some(tx_hash) = stream.next().await {
-        debug!("Tx Hash: {:?}",tx_hash); 
-        hash_count += 1; 
-        //Tx only counts fetch_transaction and fetch_price
-        print!("\rHash#: {} | Review#: {} | ADD#: {} | ToDeX#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
-        hash_count, 
-        REVIEW_COUNT.load(Ordering::SeqCst), 
-        ADDRESS_COUNT.fetch_add(1, Ordering::SeqCst),
-        TODEX_COUNT.load(Ordering::SeqCst), 
-        ARBITRAGE_COUNT.load(Ordering::SeqCst),
-        API_TX_COUNT.load(Ordering::SeqCst), 
-        API_TX_FAIL_COUNT.load(Ordering::SeqCst),
-        SUCCESS_COUNT.load(Ordering::SeqCst),
-        RETRY_COUNT.load(Ordering::SeqCst),
-        RETRY_ERR_COUNT.load(Ordering::SeqCst),
-        MINED_COUNT.load(Ordering::SeqCst), 
-     ); 
+        //check if we run out of infura credits
+        match tx_hash_result {
+            Ok(tx_hash) => {
+                debug!("Tx Hash: {:?}",tx_hash); 
+                hash_count += 1; 
+                //Tx only counts fetch_transaction and fetch_price
+                print!("\rHash#: {} | Review#: {} | ADD#: {} | ToDeX#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
+                    hash_count, 
+                    REVIEW_COUNT.load(Ordering::SeqCst), 
+                    ADDRESS_COUNT.fetch_add(1, Ordering::SeqCst),
+                    TODEX_COUNT.load(Ordering::SeqCst), 
+                    ARBITRAGE_COUNT.load(Ordering::SeqCst),
+                    API_TX_COUNT.load(Ordering::SeqCst), 
+                    API_TX_FAIL_COUNT.load(Ordering::SeqCst),
+                    SUCCESS_COUNT.load(Ordering::SeqCst),
+                    RETRY_COUNT.load(Ordering::SeqCst),
+                    RETRY_ERR_COUNT.load(Ordering::SeqCst),
+                    MINED_COUNT.load(Ordering::SeqCst), 
+                ); 
+                // Flush the output to ensure it appears immediately
+                io::stdout().flush().unwrap();
+                
+                if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash, rate_limiter.clone()).await {
+                    REVIEW_COUNT.fetch_add(1, Ordering::SeqCst);
 
-        // Flush the output to ensure it appears immediately
-        io::stdout().flush().unwrap();
-        /* ========
-            •	What It Does:
-                For every pending transaction hash received from the mempool, the bot tries to fetch the full transaction details using get_transaction.
-            •	Key Points:
-            •	The get_transaction function is a blocking call that waits for the transaction to be mined.
-            •	The function retries up to five times with exponential backoff.
-            •	Once the transaction is fetched, the bot checks if the transaction is a DEX swap by comparing the to address with known DEX router addresses.
-            •	If the transaction is a DEX swap, the bot decodes the input data to extract the token addresses, amounts, and recipient.
-            •	Finally, the bot calls simulate_arbitrage to check for profitable arbitrage opportunities.
-            ===========
-            AMT ETH will be 0 if no ethereum transffered. But there will sometimes be value even if the transfer tokens doest not have Eth. It could be payments for the gas fee.
-        */
-        
-        if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash, rate_limiter.clone()).await {
-            REVIEW_COUNT.fetch_add(1, Ordering::SeqCst);
+                    if let Some(to) = transaction.to {
+                        ADDRESS_COUNT.fetch_add(1, Ordering::SeqCst);
+                        if let Some((detected_dex_name, matching_address)) = dex_groups.iter().find(|(_, addresses)| {
+                            addresses.iter().any(|(address, _)| address == &to)
+                        }) {
+                            TODEX_COUNT.fetch_add(1, Ordering::SeqCst);
+                            info!("++Listed DEX Router found!: {} (Address: {:?})", detected_dex_name, matching_address);
+                            info!("Hash : {:?}", tx_hash);
+                            info!("From : {:?}", transaction.from);
+                            info!("To   : {:?}", transaction.to);
+                            let gas_price = transaction.gas_price.map(|g| ethers::utils::format_units(g, "gwei").unwrap());
+                            info!("Gas Price: {} Gwei", gas_price.unwrap_or_else(|| "unknown".to_string()));
+                            info!("AMT ETH: {} ETH", format_ether(transaction.value));
 
-            if let Some(to) = transaction.to {
-                ADDRESS_COUNT.fetch_add(1, Ordering::SeqCst);
-                if let Some((detected_dex_name, matching_address)) = dex_groups.iter().find(|(_, addresses)| {
-                    addresses.iter().any(|(address, _)| address == &to)
-                }) {
-                    TODEX_COUNT.fetch_add(1, Ordering::SeqCst);
-                    info!("++Listed DEX Router found!: {} (Address: {:?})", detected_dex_name, matching_address);
-                    info!("Hash : {:?}", tx_hash);
-                    info!("From : {:?}", transaction.from);
-                    info!("To   : {:?}", transaction.to);
-                    let gas_price = transaction.gas_price.map(|g| ethers::utils::format_units(g, "gwei").unwrap());
-                    info!("Gas Price: {} Gwei", gas_price.unwrap_or_else(|| "unknown".to_string()));
-                    info!("AMT ETH: {} ETH", format_ether(transaction.value));
-
-                    // Decode transaction input
-                    //_amount_in is probably too large so we overide it
-                    if let Some((token_in, token_out, _amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
-                        let (token_in_name, _) = get_token_info(&token_in);
-                        let (token_out_name, _) = get_token_info(&token_out);
-                    
-                        // Check if token is listed
-                        if !allowed_tokens.contains(&token_in) {
-                            warn!("❌ TokenInUnListed: {:?}", token_in);
-                        }else{
-                            info!("TokenInListed: {:?}", token_in_name);
-                        }
-                        
-                        if !allowed_tokens.contains(&token_out) {
-                            warn!("❌ TokenOutUnListed: {:?}", token_out);
-                        }else{
-                            info!("TokenOutListed: {:?}", token_out_name);
-                        }
-                    
-                        if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
-                            let (_, token_in_decimals) = get_token_info(&token_in);
-                            //override amount_in to 2 tokens
-                            let amount_in = U256::from(2) * U256::exp10(token_in_decimals as usize);
-
-                            info!("✅ Listed Tokens. Starting Arbitrage Sim!");
-                            info!("🪙 Token In: {:?}", token_in_name);
-                            info!("🪙 Token Out: {:?}", token_out_name);
-                            info!("💰 Amount In: {:?}", amount_in);
-                            info!("👤 Recipient: {:?}", recipient);
-
-                            let mut prices = vec![];
-
-                            for (_group_name, dexes) in &dex_groups {
-                                for (dex_address, dex_name) in dexes {
-                                    if let Some(price) = fetch_price(&provider, *dex_address, dex_name, token_in, token_out, amount_in, DEFAULT).await {
-                                        prices.push((dex_name.to_string(), price));
-                                    }
-                                }
-                            }
-                            // Check Binance price.
-                            let symbol = format!("{}{}", token_in_name, token_out_name);
+                            // Decode transaction input
+                            //_amount_in is probably too large so we overide it
+                            if let Some((token_in, token_out, _amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
+                                let (token_in_name, _) = get_token_info(&token_in);
+                                let (token_out_name, _) = get_token_info(&token_out);
                             
-                            if valid_pairs.contains(&symbol) {
-                                match fetch_binance_price(&symbol).await {
-                                    Ok(price) => {
-                                        info!("💱 Current Price for {}: ${:.2}", symbol, price);
-                                    }
-                                    Err(e) => {
-                                        error!("❌ Error fetching price for {}: {}", symbol, e);
-                                    }
+                                // Check if token is listed
+                                if !allowed_tokens.contains(&token_in) {
+                                    warn!("❌ TokenInUnListed: {:?}", token_in);
+                                }else{
+                                    info!("TokenInListed: {:?}", token_in_name);
                                 }
-                            } else {
-                                error!("❌ Pair {} is not valid on Binance.", symbol);
-                            }
+                                
+                                if !allowed_tokens.contains(&token_out) {
+                                    warn!("❌ TokenOutUnListed: {:?}", token_out);
+                                }else{
+                                    info!("TokenOutListed: {:?}", token_out_name);
+                                }
+                            
+                                if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
+                                    let (_, token_in_decimals) = get_token_info(&token_in);
+                                    //override amount_in to 2 tokens
+                                    let amount_in = U256::from(2) * U256::exp10(token_in_decimals as usize);
 
-                            // Perform arbitrage simulation if we have at least two prices
-                            if prices.len() >= 2 {
-                                let mut prices_iter = prices.iter();
-                                let first_price = prices_iter.next().unwrap();
-                                let second_price = prices_iter.next().unwrap();
-                                ARBITRAGE_COUNT.fetch_add(1, Ordering::SeqCst);
-                                simulate_arbitrage(Some(first_price.1), Some(second_price.1), amount_in)?;
-                            } else {
-                                warn!("❌ Not enough price data for arbitrage simulation.");
+                                    info!("✅ Listed Tokens. Starting Arbitrage Sim!");
+                                    info!("🪙 Token In: {:?}", token_in_name);
+                                    info!("🪙 Token Out: {:?}", token_out_name);
+                                    info!("💰 Amount In: {:?}", amount_in);
+                                    info!("👤 Recipient: {:?}", recipient);
+
+                                    let mut prices = vec![];
+
+                                    for (_group_name, dexes) in &dex_groups {
+                                        for (dex_address, dex_name) in dexes {
+                                            if let Some(price) = fetch_price(&provider, *dex_address, dex_name, token_in, token_out, amount_in, DEFAULT).await {
+                                                prices.push((dex_name.to_string(), price));
+                                            }
+                                        }
+                                    }
+                                    // Check Binance price.
+                                    let symbol = format!("{}{}", token_in_name, token_out_name);
+                                    
+                                    if valid_pairs.contains(&symbol) {
+                                        match fetch_binance_price(&symbol).await {
+                                            Ok(price) => {
+                                                info!("💱 Current Price for {}: ${:.2}", symbol, price);
+                                            }
+                                            Err(e) => {
+                                                error!("❌ Error fetching price for {}: {}", symbol, e);
+                                            }
+                                        }
+                                    } else {
+                                        error!("❌ Pair {} is not valid on Binance.", symbol);
+                                    }
+
+                                    // Perform arbitrage simulation if we have at least two prices
+                                    if prices.len() >= 2 {
+                                        let mut prices_iter = prices.iter();
+                                        let first_price = prices_iter.next().unwrap();
+                                        let second_price = prices_iter.next().unwrap();
+                                        ARBITRAGE_COUNT.fetch_add(1, Ordering::SeqCst);
+                                        simulate_arbitrage(Some(first_price.1), Some(second_price.1), amount_in)?;
+                                    } else {
+                                        warn!("❌ Not enough price data for arbitrage simulation.");
+                                    }
+                                }else {
+                                    warn!("❌ Skipping...");
+                                }
                             }
-                        }else {
-                            warn!("❌ Skipping...");
                         }
                     }
                 }
             }
-        }
-    }
+            Err(e) => {
+                error!("❌ Stream error detected: {}. Switching to new Infura key...", e);
+                
+                // Switch to the next Infura URL if transaction is of credits.
+                manager.switch_url();
+
+                // Reconnect using the new URL
+                provider = Arc::new(connect_to_infura(manager.clone()).await?);
+
+                // Resubscribe to pending transactions
+                stream = provider.subscribe_pending_txs().await?;
+            }
+        }//end of match
     Ok(())
-}
+}//end of while subscription stream
 
 /* ======== Decode DEX swap transaction input data
 Confirmed using https://www.4byte.directory/
@@ -758,6 +792,54 @@ fn get_token_info(address: &Address) -> (String, u8) {
     }
 }
 
+
+struct InfuraManager {
+    urls: Vec<String>,
+    current_index: Mutex<usize>,
+}
+
+impl InfuraManager {
+    fn new() -> Self {
+        let urls = vec![
+            env::var("INFURA_WS_URL_1").expect("INFURA_WS_URL_1 must be set"),
+            env::var("INFURA_WS_URL_2").expect("INFURA_WS_URL_2 must be set"),
+            env::var("INFURA_WS_URL_3").expect("INFURA_WS_URL_3 must be set"),
+        ];
+        InfuraManager {
+            urls,
+            current_index: Mutex::new(0),
+        }
+    }
+
+    fn get_current_url(&self) -> String {
+        let index = *self.current_index.lock().unwrap();
+        self.urls[index].clone()
+    }
+
+    fn switch_url(&self) {
+        let mut index = self.current_index.lock().unwrap();
+        *index = (*index + 1) % self.urls.len();
+        info!("🔄 Switching to Infura URL: {}", self.urls[*index]);
+    }
+}
+
+async fn connect_to_infura(manager: Arc<InfuraManager>) -> Result<Provider<Ws>, Box<dyn std::error::Error>> {
+    loop {
+        let ws_url = manager.get_current_url();
+        match Ws::connect(&ws_url).await {
+            Ok(ws) => {
+                info!("🔗 Connected to Infura: {}", ws_url);
+                return Ok(Provider::new(ws));
+            }
+            Err(e) => {
+                error!("❌ Failed to connect: {}. Retrying with a different API key...", e);
+                manager.switch_url();
+                sleep(Duration::from_secs(2)).await; // Wait before retrying
+            }
+        }
+    }
+}
+
 /// Fetch the real-time price of a trading pair from Binance
 ///
 /// # Arguments:
@@ -844,3 +926,13 @@ This bot connects to the Ethereum network in real-time and listens for pending t
 - V5: Enhanced profit calculation (gas fees, slippage, etc.).
 
 ============ */
+// Spawn a task to periodically print the counter - this was overlapping the hashcount print.
+/* 
+    tokio::spawn(async move {
+        loop {
+            print!("\r| API Tx: {}", API_TX_COUNT.load(Ordering::SeqCst));
+            io::stdout().flush().unwrap(); // Ensure the line updates immediately
+            sleep(Duration::from_secs(300)).await;
+        }
+    });
+*/
