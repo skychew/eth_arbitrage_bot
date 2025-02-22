@@ -142,12 +142,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Uniswap V3 Quoter contract address
     const UNISWAP_V3_QUOTER: &str = "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6";
 
-/* ======== Subscribe to pending transactions
-•	What It Does: This connects to the Ethereum mempool and listens for all pending transactions (those broadcast but not yet mined into a block).
-•	Key Points:
-•	The subscription provides transaction hashes, not full transaction details.
-•	The subscription stream should continue indefinitely, feeding new transaction hashes as they appear.
-=========== */
+    /* ======== Subscribe to pending transactions
+    •	What It Does: This connects to the Ethereum mempool and listens for all pending transactions (those broadcast but not yet mined into a block).
+    •	Key Points:
+    •	The subscription provides transaction hashes, not full transaction details.
+    •	The subscription stream should continue indefinitely, feeding new transaction hashes as they appear.
+    =========== */
     // Initialize InfuraManager
     let manager = Arc::new(InfuraManager::new());
     // Attempt to connect to Infura
@@ -294,21 +294,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Resubscribe to pending transactions
                 stream = provider.subscribe_pending_txs().await?;
             }
-        }//end of match
+        }//end match
         Ok(())
-    }//end of while subscription stream
+    }//end subscription stream
+}//end main
 
 /* ======== Decode DEX swap transaction input data
-Confirmed using https://www.4byte.directory/
-Paste selector to get function signature
+    Confirmed using https://www.4byte.directory/
+    Paste selector to get function signature
 
-Function (selector)
-exactInputSingle (0x414bf389)
-exactOutput (0xf28c0498)
-exactOutputSingle (0xdb3e2198)
-exactInput (0xc04b8d59)
-
-========*/ 
+    Function (selector)
+    exactInputSingle (0x414bf389)
+    exactOutput (0xf28c0498)
+    exactOutputSingle (0xdb3e2198)
+    exactInput (0xc04b8d59)
+    ========*/ 
 fn decode_input_data(input: &Bytes, abi: &Abi) -> Option<(Address, Address, U256, Address)> {
     // Check for empty input
     if input.is_empty() {
