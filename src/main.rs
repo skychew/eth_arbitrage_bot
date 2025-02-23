@@ -31,14 +31,15 @@ use serde_json::Value;
 // Global counters
 static API_TX_COUNT: AtomicUsize = AtomicUsize::new(0);
 static REVIEW_COUNT: AtomicUsize = AtomicUsize::new(0);
-static ADDRESS_COUNT: AtomicUsize = AtomicUsize::new(0);
+//static ADDRESS_COUNT: AtomicUsize = AtomicUsize::new(0);
 static ARBITRAGE_COUNT: AtomicUsize = AtomicUsize::new(0);
 static TODEX_COUNT: AtomicUsize = AtomicUsize::new(0);
 static API_TX_FAIL_COUNT: AtomicUsize = AtomicUsize::new(0);
 static SUCCESS_COUNT: AtomicUsize = AtomicUsize::new(0);
-static RETRY_COUNT: AtomicUsize = AtomicUsize::new(0);
-static RETRY_ERR_COUNT: AtomicUsize = AtomicUsize::new(0);
+//static RETRY_COUNT: AtomicUsize = AtomicUsize::new(0);
+//static RETRY_ERR_COUNT: AtomicUsize = AtomicUsize::new(0);
 static MINED_COUNT: AtomicUsize = AtomicUsize::new(0);
+static RETRY_MAX_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 // Uniswap V3 Quoter contract address
 const UNISWAP_V3_QUOTER: &str = "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6";
