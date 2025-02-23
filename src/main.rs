@@ -160,6 +160,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     */
     let provider = Arc::new(provider);
     info!("================= Connecting to Eth WebSocket: {}", manager.get_current_url());
+    
+    // WebSocket keep-alive check
+    tokio::spawn({
+        let provider = provider.clone();
+        async move {
+            loop {
+                match provider.get_block_number().await {
+                    Ok(block) => info!("✅ WebSocket alive - Latest Block: {}", block),
+                    Err(e) => warn!("⚠️ WebSocket might be down: {:?}", e),
+                }
+                sleep(Duration::from_secs(60)).await; // Check every 60 seconds
+            }
+        }
+    });
     let mut stream = provider.subscribe_pending_txs().await?;
     // Initialize the number of hash processsed
     let mut hash_count = 0;       
