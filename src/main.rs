@@ -171,7 +171,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         //check if we run out of infura credits
       //  match tx_hash_result {
        //     Ok (tx_hash) => {
-                debug!("Tx Hash: {:?}",tx_hash); 
+                info!("Tx Hash: {:?}",tx_hash); 
                 hash_count += 1; 
                 //Tx only counts fetch_transaction and fetch_price
                 print!("\rHash#: {} | Review#: {} | ToDeX#: {} | Abtrg#: {} | Fail#: {} | Sucss#: {} | MaxTx#: {} | isMined#: {}", 
