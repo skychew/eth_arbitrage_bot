@@ -291,6 +291,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }//end match*/
     }//end subscription stream
+    error!("❌ Application quit");
     Ok(())
 }//end main
 
