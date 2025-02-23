@@ -173,17 +173,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 debug!("Tx Hash: {:?}",tx_hash); 
                 hash_count += 1; 
                 //Tx only counts fetch_transaction and fetch_price
-                print!("\rHash#: {} | Review#: {} | ToDeX#: {} | Abtrg#: {} | Tx#: {} | Fail#: {} | 1stTry#: {} | Retry#: {} | RtryErr#: {} | isMined#: {}", 
+                print!("\rHash#: {} | Review#: {} | ToDeX#: {} | Abtrg#: {} | Fail#: {} | Sucss#: {} | MaxTx#: {} | isMined#: {}", 
                     hash_count, 
                     REVIEW_COUNT.load(Ordering::SeqCst), 
-                    //ADDRESS_COUNT.fetch_add(1, Ordering::SeqCst),
                     TODEX_COUNT.load(Ordering::SeqCst), 
-                    ARBITRAGE_COUNT.load(Ordering::SeqCst),
-                    API_TX_COUNT.load(Ordering::SeqCst), 
+                    ARBITRAGE_COUNT.load(Ordering::SeqCst), 
                     API_TX_FAIL_COUNT.load(Ordering::SeqCst),
-                    SUCCESS_COUNT.load(Ordering::SeqCst),
-                    RETRY_COUNT.load(Ordering::SeqCst),
-                    RETRY_ERR_COUNT.load(Ordering::SeqCst),
+                    SUCCESS_COUNT.load(Ordering::SeqCst),//fetch transaction on first try
+                    RETRY_MAX_COUNT.load(Ordering::SeqCst),//Retrieve the transaction at max retry.
                     MINED_COUNT.load(Ordering::SeqCst), 
                 ); 
                 // Flush the output to ensure it appears immediately
@@ -588,6 +585,9 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
 
     ===========
     Recommended: 4 max_retries, 2000ms initial delay 
+    6,40ms worked well too.
+    10,20ms is just to use up the Infura credits.
+    ===========
     4 retries with exponential backoff (2,4,6,8) because if the transaction is not found after 3 retries, it’s likely not going to be mined. 
     Average time for a block to processed in Ethereum is 13 seconds.
     ===========
@@ -595,9 +595,9 @@ fn simulate_arbitrage(sushi_price: Option<U256>, uniswap_price: Option<U256>, am
     and lower delay time if we want to compete for arbitrage opportunities but we will need more transaction credits.
  */
 async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limiter: Arc<Semaphore>) -> Option<Transaction> {
-    let max_retries = 6; // Maximum number of retries 
+    let max_retries = 10; // Maximum number of retries 
     let mut attempt = 0;
-    let mut delay = Duration::from_millis(40); // Initial delay is small so we dont miss transaction and it goes out of the pending block.
+    let mut delay = Duration::from_millis(20); // Initial delay is small so we dont miss transaction and it goes out of the pending block.
     let mut eror = 0;
     let permit: OwnedSemaphorePermit = rate_limiter.clone().acquire_owned().await.unwrap();
     // Enforce spacing (2ms per request for 500 requests/sec)
@@ -612,12 +612,15 @@ async fn fetch_transaction(provider: Arc<Provider<Ws>>, tx_hash: H256,rate_limit
                     //success on first attempt
                     SUCCESS_COUNT.fetch_add(1, Ordering::SeqCst);
                 }else{
-                    if eror == 0{
+                    if eror == (max_retries-1){
+                        //see if retry at max actually works.
+                        RETRY_MAX_COUNT.fetch_add(1, Ordering::SeqCst); 
+                    } else if eror == 0 {
                         //see if retry actually works.
-                        RETRY_COUNT.fetch_add(1, Ordering::SeqCst);
+                        //RETRY_COUNT.fetch_add(1, Ordering::SeqCst);  
                     } else {
                         //see if after error there was a success
-                        RETRY_ERR_COUNT.fetch_add(1, Ordering::SeqCst);
+                        //RETRY_ERR_COUNT.fetch_add(1, Ordering::SeqCst);
                     }
                 }
                 // Check if the transaction is mined
