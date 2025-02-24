@@ -168,9 +168,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             loop {
                 match provider.get_block_number().await {
                     Ok(block) => info!("✅ WebSocket alive - Latest Block: {}", block),
-                    Err(e) => warn!("⚠️ WebSocket might be down: {:?}", e),
+                    Err(e) => {
+                        warn!("⚠️ WebSocket might be down: {:?}", e);
+
+                        error!("❌ Stream error detected: {}. Switching to new Infura key...", e);
+                        /* 
+                        // Switch to the next Infura URL if transaction is of credits.
+                        manager.switch_url();
+
+                        // Reconnect using the new URL
+                        provider = Arc::new(connect_to_infura(manager.clone()).await?);
+
+                        // Resubscribe to pending transactions
+                        stream = provider.subscribe_pending_txs().await?;
+                        */
+                    }
                 }
-                sleep(Duration::from_secs(60)).await; // Check every 60 seconds
+                sleep(Duration::from_secs(600)).await; // Check every 60 seconds
             }
         }
     });
@@ -183,7 +197,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     while let Some(tx_hash) = stream.next().await {
         //check if we run out of infura credits
-      //  match tx_hash_result {
+         match tx_hash_result {
        //     Ok (tx_hash) => {
                 info!("Tx Hash: {:?}",tx_hash); 
                 hash_count += 1; 
@@ -290,22 +304,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }//if detected dex name
                     }// end let (to)
                 }
-    /*        }
-            Err(e) => {
-                error!("❌ Stream error detected: {}. Switching to new Infura key...", e);
-                
-                // Switch to the next Infura URL if transaction is of credits.
-                manager.switch_url();
-
-                // Reconnect using the new URL
-                provider = Arc::new(connect_to_infura(manager.clone()).await?);
-
-                // Resubscribe to pending transactions
-                stream = provider.subscribe_pending_txs().await?;
+            }
+            None => {
+                warn!("⚠️ WebSocket stream closed unexpectedly");
+                break; // Exit the loop if the stream unexpectedly stops
             }
         }//end match*/
     }//end subscription stream
-    error!("❌ Application quit");
+    error!("❌ Application Ended");
     Ok(())
 }//end main
 
