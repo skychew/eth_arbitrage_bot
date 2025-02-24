@@ -170,9 +170,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         warn!("⚠️ WebSocket Err: {:?}", e);
                         // Error back from Infura when credit finishes: JsonRpcClientError(JsonRpcError(JsonRpcError { code: 429, message: "Too Many Requests", data: None }))
                         if let ethers::providers::ProviderError::JsonRpcClientError(json_rpc_err) = e {
-                            if json_rpc_err.code == 429 {
-                                warn!("🚨 Too Many Requests: Switching Infura key...");
-                                reconnect_needed.store(true, Ordering::SeqCst);
+                            if let Some(json_rpc_error) = json_rpc_err.as_ref().as_error_response() {
+                                if json_rpc_error.code == 429 {
+                                    warn!("🚨 Too Many Requests: Switching Infura key...");
+                                    reconnect_needed.store(true, Ordering::SeqCst);
+                                }
                             }
                         }
                     }
