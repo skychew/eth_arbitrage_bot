@@ -195,9 +195,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     debug!("📡 Fetching valid trading pairs from Binance...");
     let valid_pairs = fetch_valid_pairs().await?;
 
-    while let Some(tx_hash) = stream.next().await {
+    while let Some(tx) = stream.next().await {
         //check if stream is still alive
-        match tx_hash {
+        match tx {
             Some(tx_hash) => {
                 info!("Tx Hash: {:?}",tx_hash); 
                 hash_count += 1; 
