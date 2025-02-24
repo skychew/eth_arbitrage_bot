@@ -307,8 +307,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             warn!("⚠️ WebSocket stream closed unexpectedly");
             break; 
         }   
-        }//end match*/
-    }//end subscription strea
+    }//end subscription stream while loop
     error!("❌ Application Ended");
     Ok(())
 }//end main
