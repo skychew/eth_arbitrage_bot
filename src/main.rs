@@ -31,8 +31,6 @@ use serde_json::Value;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-let reconnect_needed = Arc::new(AtomicBool::new(false));
-
 // Global counters
 static API_TX_COUNT: AtomicUsize = AtomicUsize::new(0);
 static REVIEW_COUNT: AtomicUsize = AtomicUsize::new(0);
