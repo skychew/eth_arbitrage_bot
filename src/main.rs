@@ -198,114 +198,116 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     while let Some(tx_hash) = stream.next().await {
         //check if stream is still alive
         match tx_hash {
-            info!("Tx Hash: {:?}",tx_hash); 
-            hash_count += 1; 
-            //Tx only counts fetch_transaction and fetch_price
-            print!("\rHash#: {} | Review#: {} | ToDeX#: {} | Abtrg#: {} | Fail#: {} | Sucss#: {} | MaxTx#: {} | isMined#: {}", 
-                hash_count, 
-                REVIEW_COUNT.load(Ordering::SeqCst), 
-                TODEX_COUNT.load(Ordering::SeqCst), 
-                ARBITRAGE_COUNT.load(Ordering::SeqCst), 
-                API_TX_FAIL_COUNT.load(Ordering::SeqCst),
-                SUCCESS_COUNT.load(Ordering::SeqCst),//fetch transaction on first try
-                RETRY_MAX_COUNT.load(Ordering::SeqCst),//Retrieve the transaction at max retry.
-                MINED_COUNT.load(Ordering::SeqCst), 
-            ); 
-            // Flush the output to ensure it appears immediately
-            io::stdout().flush().unwrap();
-            
-            if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash, rate_limiter.clone()).await {
-                REVIEW_COUNT.fetch_add(1, Ordering::SeqCst);
-                debug!("Tx Hash: {:?}",tx_hash); 
+            Some(tx_hash) => {
+                info!("Tx Hash: {:?}",tx_hash); 
+                hash_count += 1; 
+                //Tx only counts fetch_transaction and fetch_price
+                print!("\rHash#: {} | Review#: {} | ToDeX#: {} | Abtrg#: {} | Fail#: {} | Sucss#: {} | MaxTx#: {} | isMined#: {}", 
+                    hash_count, 
+                    REVIEW_COUNT.load(Ordering::SeqCst), 
+                    TODEX_COUNT.load(Ordering::SeqCst), 
+                    ARBITRAGE_COUNT.load(Ordering::SeqCst), 
+                    API_TX_FAIL_COUNT.load(Ordering::SeqCst),
+                    SUCCESS_COUNT.load(Ordering::SeqCst),//fetch transaction on first try
+                    RETRY_MAX_COUNT.load(Ordering::SeqCst),//Retrieve the transaction at max retry.
+                    MINED_COUNT.load(Ordering::SeqCst), 
+                ); 
+                // Flush the output to ensure it appears immediately
+                io::stdout().flush().unwrap();
+                
+                if let Some(transaction) = fetch_transaction(provider.clone(), tx_hash, rate_limiter.clone()).await {
+                    REVIEW_COUNT.fetch_add(1, Ordering::SeqCst);
+                    debug!("Tx Hash: {:?}",tx_hash); 
 
-                if let Some(to) = transaction.to {
-                    if let Some((detected_dex_name, matching_address)) = dex_groups.iter().find(|(_, addresses)| {
-                        addresses.iter().any(|(address, _)| address == &to)
-                    }) {
-                        TODEX_COUNT.fetch_add(1, Ordering::SeqCst);
-                        info!("++Listed DEX Router found!: {} (Address: {:?})", detected_dex_name, matching_address);
-                        info!("Hash : {:?}", tx_hash);
-                        info!("From : {:?}", transaction.from);
-                        info!("To   : {:?}", transaction.to);
-                        let gas_price = transaction.gas_price.map(|g| ethers::utils::format_units(g, "gwei").unwrap());
-                        info!("Gas Price: {} Gwei", gas_price.unwrap_or_else(|| "unknown".to_string()));
-                        info!("AMT ETH: {} ETH", format_ether(transaction.value));
+                    if let Some(to) = transaction.to {
+                        if let Some((detected_dex_name, matching_address)) = dex_groups.iter().find(|(_, addresses)| {
+                            addresses.iter().any(|(address, _)| address == &to)
+                        }) {
+                            TODEX_COUNT.fetch_add(1, Ordering::SeqCst);
+                            info!("++Listed DEX Router found!: {} (Address: {:?})", detected_dex_name, matching_address);
+                            info!("Hash : {:?}", tx_hash);
+                            info!("From : {:?}", transaction.from);
+                            info!("To   : {:?}", transaction.to);
+                            let gas_price = transaction.gas_price.map(|g| ethers::utils::format_units(g, "gwei").unwrap());
+                            info!("Gas Price: {} Gwei", gas_price.unwrap_or_else(|| "unknown".to_string()));
+                            info!("AMT ETH: {} ETH", format_ether(transaction.value));
 
-                        // Decode transaction input
-                        //_amount_in is probably too large so we overide it
-                        if let Some((token_in, token_out, _amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
-                            let (token_in_name, _) = get_token_info(&token_in);
-                            let (token_out_name, _) = get_token_info(&token_out);
-                        
-                            // Check if token is listed
-                            if !allowed_tokens.contains(&token_in) {
-                                warn!("❌ TokenInUnListed: {:?}", token_in);
-                            }else{
-                                info!("TokenInListed: {:?}", token_in_name);
-                            }
+                            // Decode transaction input
+                            //_amount_in is probably too large so we overide it
+                            if let Some((token_in, token_out, _amount_in, recipient)) = decode_input_data(&transaction.input, &abi) {
+                                let (token_in_name, _) = get_token_info(&token_in);
+                                let (token_out_name, _) = get_token_info(&token_out);
                             
-                            if !allowed_tokens.contains(&token_out) {
-                                warn!("❌ TokenOutUnListed: {:?}", token_out);
-                            }else{
-                                info!("TokenOutListed: {:?}", token_out_name);
-                            }
-                        
-                            if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
-                                let (_, token_in_decimals) = get_token_info(&token_in);
-                                //override amount_in to 2 tokens
-                                let amount_in = U256::from(2) * U256::exp10(token_in_decimals as usize);
-
-                                info!("✅ Listed Tokens. Starting Arbitrage Sim!");
-                                info!("🪙 Token In: {:?}", token_in_name);
-                                info!("🪙 Token Out: {:?}", token_out_name);
-                                info!("💰 Amount In: {:?}", amount_in);
-                                info!("👤 Recipient: {:?}", recipient);
-
-                                let mut prices = vec![];
-
-                                for (_group_name, dexes) in &dex_groups {
-                                    for (dex_address, dex_name) in dexes {
-                                        if let Some(price) = fetch_price(&provider, *dex_address, dex_name, token_in, token_out, amount_in, DEFAULT).await {
-                                            prices.push((dex_name.to_string(), price));
-                                        }
-                                    }
+                                // Check if token is listed
+                                if !allowed_tokens.contains(&token_in) {
+                                    warn!("❌ TokenInUnListed: {:?}", token_in);
+                                }else{
+                                    info!("TokenInListed: {:?}", token_in_name);
                                 }
-                                // Check Binance price.
-                                let symbol = format!("{}{}", token_in_name, token_out_name);
                                 
-                                if valid_pairs.contains(&symbol) {
-                                    match fetch_binance_price(&symbol).await {
-                                        Ok(price) => {
-                                            info!("💱 Current Price for {}: ${:.2}", symbol, price);
-                                        }
-                                        Err(e) => {
-                                            error!("❌ Error fetching price for {}: {}", symbol, e);
+                                if !allowed_tokens.contains(&token_out) {
+                                    warn!("❌ TokenOutUnListed: {:?}", token_out);
+                                }else{
+                                    info!("TokenOutListed: {:?}", token_out_name);
+                                }
+                            
+                                if allowed_tokens.contains(&token_in) && allowed_tokens.contains(&token_out) {
+                                    let (_, token_in_decimals) = get_token_info(&token_in);
+                                    //override amount_in to 2 tokens
+                                    let amount_in = U256::from(2) * U256::exp10(token_in_decimals as usize);
+
+                                    info!("✅ Listed Tokens. Starting Arbitrage Sim!");
+                                    info!("🪙 Token In: {:?}", token_in_name);
+                                    info!("🪙 Token Out: {:?}", token_out_name);
+                                    info!("💰 Amount In: {:?}", amount_in);
+                                    info!("👤 Recipient: {:?}", recipient);
+
+                                    let mut prices = vec![];
+
+                                    for (_group_name, dexes) in &dex_groups {
+                                        for (dex_address, dex_name) in dexes {
+                                            if let Some(price) = fetch_price(&provider, *dex_address, dex_name, token_in, token_out, amount_in, DEFAULT).await {
+                                                prices.push((dex_name.to_string(), price));
+                                            }
                                         }
                                     }
-                                } else {
-                                    error!("❌ Pair {} is not valid on Binance.", symbol);
-                                }
+                                    // Check Binance price.
+                                    let symbol = format!("{}{}", token_in_name, token_out_name);
+                                    
+                                    if valid_pairs.contains(&symbol) {
+                                        match fetch_binance_price(&symbol).await {
+                                            Ok(price) => {
+                                                info!("💱 Current Price for {}: ${:.2}", symbol, price);
+                                            }
+                                            Err(e) => {
+                                                error!("❌ Error fetching price for {}: {}", symbol, e);
+                                            }
+                                        }
+                                    } else {
+                                        error!("❌ Pair {} is not valid on Binance.", symbol);
+                                    }
 
-                                // Perform arbitrage simulation if we have at least two prices
-                                if prices.len() >= 2 {
-                                    let mut prices_iter = prices.iter();
-                                    let first_price = prices_iter.next().unwrap();
-                                    let second_price = prices_iter.next().unwrap();
-                                    ARBITRAGE_COUNT.fetch_add(1, Ordering::SeqCst);
-                                    simulate_arbitrage(Some(first_price.1), Some(second_price.1), amount_in)?;
-                                } else {
-                                    warn!("❌ Not enough price data for arbitrage simulation.");
+                                    // Perform arbitrage simulation if we have at least two prices
+                                    if prices.len() >= 2 {
+                                        let mut prices_iter = prices.iter();
+                                        let first_price = prices_iter.next().unwrap();
+                                        let second_price = prices_iter.next().unwrap();
+                                        ARBITRAGE_COUNT.fetch_add(1, Ordering::SeqCst);
+                                        simulate_arbitrage(Some(first_price.1), Some(second_price.1), amount_in)?;
+                                    } else {
+                                        warn!("❌ Not enough price data for arbitrage simulation.");
+                                    }
+                                }else {
+                                    warn!("❌ Skipping...");
                                 }
-                            }else {
-                                warn!("❌ Skipping...");
                             }
-                        }
-                    }//if detected dex name
+                        }//if detected dex name
+                    }
                 }
+            } None => {
+                warn!("⚠️ WebSocket stream closed unexpectedly");
+                break; 
             }
-        } None => {
-            warn!("⚠️ WebSocket stream closed unexpectedly");
-            break; 
         }   
     }//end subscription stream while loop
     error!("❌ Application Ended");
