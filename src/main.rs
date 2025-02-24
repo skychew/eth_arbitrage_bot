@@ -28,6 +28,11 @@ use env_logger::{Builder, Target};
 use reqwest;
 use serde_json::Value;
 
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
+let reconnect_needed = Arc::new(AtomicBool::new(false));
+
 // Global counters
 static API_TX_COUNT: AtomicUsize = AtomicUsize::new(0);
 static REVIEW_COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -164,27 +169,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // WebSocket keep-alive check
     tokio::spawn({
         let provider = provider.clone();
+        let manager = manager.clone();
+        let reconnect_needed = reconnect_needed.clone();
+    
         async move {
             loop {
                 match provider.get_block_number().await {
                     Ok(block) => info!("✅ WebSocket alive - Latest Block: {}", block),
                     Err(e) => {
-                        warn!("⚠️ WebSocket might be down: {:?}", e);
-
-                        error!("❌ Stream error detected: {}. Switching to new Infura key...", e);
-                        /* 
-                        // Switch to the next Infura URL if transaction is of credits.
-                        manager.switch_url();
-
-                        // Reconnect using the new URL
-                        provider = Arc::new(connect_to_infura(manager.clone()).await?);
-
-                        // Resubscribe to pending transactions
-                        stream = provider.subscribe_pending_txs().await?;
-                        */
+                        warn!("⚠️ WebSocket Err: {:?}", e);
+                        // Error back from Infura when credit finishes: JsonRpcClientError(JsonRpcError(JsonRpcError { code: 429, message: "Too Many Requests", data: None }))
+                        if let Some(jsonrpc_error) = e.downcast_ref::<ethers::providers::JsonRpcError>() {
+                            if jsonrpc_error.code == 429 {
+                                warn!("🚨 Too Many Requests: Switching Infura key...");
+                                reconnect_needed.store(true, Ordering::SeqCst);
+                            }
+                        }
                     }
                 }
-                sleep(Duration::from_secs(600)).await; // Check every 60 seconds
+                sleep(Duration::from_secs(600)).await;
             }
         }
     });
@@ -196,6 +199,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let valid_pairs = fetch_valid_pairs().await?;
 
     while let Some(tx) = stream.next().await {
+        // Check if we need to reconnect
+        if reconnect_needed.load(Ordering::SeqCst) {
+            warn!("🔄 Reconnecting to Infura ...");
+            
+            manager.switch_url();
+            provider = Arc::new(connect_to_infura(manager.clone()).await?);
+            stream = provider.subscribe_pending_txs().await?;
+
+            // Reset the flag
+            reconnect_needed.store(false, Ordering::SeqCst);
+            continue; // Skip processing this loop iteration to start fresh
+        }
+
         info!("Tx Hash: {:?}",tx_hash); 
         hash_count += 1; 
         //Tx only counts fetch_transaction and fetch_price
