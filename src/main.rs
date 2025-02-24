@@ -152,7 +152,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let reconnect_needed = Arc::new(AtomicBool::new(false)); 
     let manager = Arc::new(InfuraManager::new());
     let provider = connect_to_infura(manager.clone()).await?;
-    let provider = Arc::new(provider);
+    let mut provider = Arc::new(provider);
 
     info!("==== Connecting to Eth WebSocket: {}", manager.get_current_url());
     
