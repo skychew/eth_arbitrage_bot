@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use std::error::Error;
 use std::collections::HashSet;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
 use std::fs::OpenOptions;
 use std::io::{self, Write}; // Required for flushing stdout
 
@@ -27,9 +27,6 @@ use env_logger::{Builder, Target};
 
 use reqwest;
 use serde_json::Value;
-
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 
 // Global counters
 static API_TX_COUNT: AtomicUsize = AtomicUsize::new(0);
