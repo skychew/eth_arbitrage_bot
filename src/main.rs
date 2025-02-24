@@ -154,17 +154,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     •	The subscription stream should continue indefinitely, feeding new transaction hashes as they appear.
     =========== */
     // Initialize InfuraManager
+    let reconnect_needed = Arc::new(AtomicBool::new(false)); 
     let manager = Arc::new(InfuraManager::new());
-    // Attempt to connect to Infura
     let provider = connect_to_infura(manager.clone()).await?;
-    /* 
-    // Connect to Ethereum provider
-    let ws_url = std::env::var("ETH_WS_URL").expect("ETH_WS_URL must be set");
-    let provider = Provider::<Ws>::connect(ws_url).await?;
-    info!("================= Connecting to Eth WebSocket: {}", ws_url);
-    */
     let provider = Arc::new(provider);
-    info!("================= Connecting to Eth WebSocket: {}", manager.get_current_url());
+
+    info!("==== Connecting to Eth WebSocket: {}", manager.get_current_url());
     
     // WebSocket keep-alive check
     tokio::spawn({
@@ -191,6 +186,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     });
+
     let mut stream = provider.subscribe_pending_txs().await?;
     // Initialize the number of hash processsed
     let mut hash_count = 0;       
