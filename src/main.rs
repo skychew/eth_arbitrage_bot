@@ -189,7 +189,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     debug!("📡 Fetching valid trading pairs from Binance...");
     let valid_pairs = fetch_valid_pairs().await?;
 
-    while let Some(tx) = stream.next().await {
+    while let Some(tx_hash) = stream.next().await {
         // Check if we need to reconnect
         if reconnect_needed.load(Ordering::SeqCst) {
             warn!("🔄 Reconnecting to Infura ...");
