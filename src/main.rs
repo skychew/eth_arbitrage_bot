@@ -159,7 +159,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // WebSocket keep-alive check
     tokio::spawn({
         let provider = provider.clone();
-        let manager = manager.clone();
         let reconnect_needed = reconnect_needed.clone();
     
         async move {
@@ -197,6 +196,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             warn!("🔄 Reconnecting to Infura ...");
             
             manager.switch_url();
+            drop(stream);
             provider = Arc::new(connect_to_infura(manager.clone()).await?);
             stream = provider.subscribe_pending_txs().await?;
 
