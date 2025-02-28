@@ -205,7 +205,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             continue; // Skip processing this loop iteration to start fresh
         }
 
-        info!("Tx Hash: {:?}",tx_hash); 
+        debug!("Tx Hash: {:?}",tx_hash); 
         hash_count += 1; 
         //Tx only counts fetch_transaction and fetch_price
         print!("\rHash#: {} | Review#: {} | ToDeX#: {} | Abtrg#: {} | Fail#: {} | Sucss#: {} | MaxTx#: {} | isMined#: {}", 
