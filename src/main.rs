@@ -163,7 +163,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             loop {
                 match provider.get_block_number().await {
                     Ok(block) => {
-                        info!("✅ WebSocket alive - Latest Block: {}", block);
+                        info!("✅ WebSocket alive - CRN Block: {} | 3600x{}", block,ALIVE_COUNT.load(Ordering::SeqCst), );
                         ALIVE_COUNT.fetch_add(1, Ordering::SeqCst);
                     } Err(e) => {
                         warn!("⚠️ WebSocket Err: {:?}", e);
